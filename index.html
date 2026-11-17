@@ -29,6 +29,9 @@
   --good:#6fcf8e;
   --warn:#f2c14e;
   --bad:#ef6a5b;
+  --body:#433a34;
+  --mus:#665a50;
+  --sec:rgba(240,138,60,.5);
   --display:"Barlow Condensed","Arial Narrow",sans-serif;
   --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:dark;
@@ -156,6 +159,23 @@ details summary::-webkit-details-marker{display:none}
   .set,.set-h{grid-template-columns:50px 1fr 1fr 1fr 40px}
   .chk{width:40px}
 }
+.anim{position:relative;background:#fff;border-radius:8px;overflow:hidden;aspect-ratio:3/2;flex:none}
+.anim img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
+.anim img.f1{animation:frame 2.4s linear infinite}
+@keyframes frame{0%,49.9%{opacity:0}50%,100%{opacity:1}}
+.anim.noimg{display:grid;place-items:center;background:var(--surface-2);font-family:var(--display);font-size:22px;color:var(--muted)}
+.anim.th{width:56px}
+.anim.md{width:124px}
+.anim.lg{width:100%}
+.mm{display:block;height:84px;width:auto;flex:none}
+.mm.big{height:220px;max-width:100%}
+.mmlab{fill:var(--muted);font-size:11px;font-family:var(--body)}
+.exinfo{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start}
+.legend{display:flex;gap:12px;justify-content:center;margin-top:4px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.exlist li.withimg{grid-template-columns:56px 1fr auto;align-items:center;cursor:pointer}
+.exmedia{display:flex;gap:10px;align-items:center;cursor:pointer;border-radius:8px}
+@media (max-width:400px){.exinfo{grid-template-columns:1fr;justify-items:center}.mm.big{height:200px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -484,6 +504,74 @@ function analysis(){
   return out;
 }
 
+/* ================= Imagens e mapa muscular ================= */
+// Fotos: Free Exercise DB (domínio público, Unlicense)
+const IMG_KEYS=["supino-reto","supino-decl","abd-decl","cruc-polia","abd-pernas","elev-lat-front","tri-tras","remada-baixa","remada-t","cruc-inv","face-pull","rosca-alt","rosca-martelo","prancha","agach-sumo","stiff","leg-press","extensora","flexora","flexora-sent","pant-sent","pant-uni","rot-ext","desenv","puxada-aberta","elev-lat","scott","tri-corda"];
+const IMG_NAMES={"supino-reto":"Supino reto","supino-decl":"Supino declinado","abd-decl":"Abdominal declinado","cruc-polia":"Crucifixo na polia","abd-pernas":"Elevação de pernas","elev-lat-front":"Elevação lateral e frontal","tri-tras":"Tríceps por trás (polia)","remada-baixa":"Remada baixa","remada-t":"Remada T","cruc-inv":"Crucifixo inverso","face-pull":"Face pull","rosca-alt":"Rosca alternada","rosca-martelo":"Rosca martelo","prancha":"Prancha","agach-sumo":"Agachamento sumô","stiff":"Stiff","leg-press":"Leg press","extensora":"Cadeira extensora","flexora":"Mesa flexora","flexora-sent":"Cadeira flexora","pant-sent":"Panturrilha sentado","pant-uni":"Panturrilha em pé","rot-ext":"Rotação externa","desenv":"Desenvolvimento com halteres","puxada-aberta":"Barra fixa","elev-lat":"Elevação lateral","scott":"Rosca Scott","tri-corda":"Tríceps corda"};
+const IMG_STATIC=new Set(["prancha"]);
+function imgKey(ex){
+  if(!ex) return null;
+  if(ex.img==="none") return null;
+  if(ex.img&&IMG_KEYS.includes(ex.img)) return ex.img;
+  if(IMG_KEYS.includes(ex.id)) return ex.id;
+  if(/^prancha/.test(ex.id)) return "prancha";
+  return null;
+}
+function animHtml(ex,cls){
+  const k=imgKey(ex); if(!k) return `<div class="anim noimg ${cls||""}" aria-hidden="true"><span>${esc((ex&&ex.name||"?").slice(0,1))}</span></div>`;
+  const alt=esc(ex.name);
+  return `<div class="anim ${cls||""}"><img src="img/${k}-0.jpg" alt="${alt}" loading="lazy" decoding="async">${IMG_STATIC.has(k)?"":`<img class="f1" src="img/${k}-1.jpg" alt="" loading="lazy" decoding="async">`}</div>`;
+}
+function muscleMap(prim,sec,big){
+  prim=prim||[];sec=sec||[];
+  const c=m=>prim.includes(m)?"var(--accent)":sec.includes(m)?"var(--sec)":"var(--mus)";
+  const pair=(f,args)=>f(...args)+f(...args.map((v,i)=>i===0?100-v:v));
+  const el=(cx,cy,rx,ry,m)=>`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${c(m)}"/>`;
+  const base=`<g fill="var(--body)"><circle cx="50" cy="13" r="9"/><rect x="45" y="20" width="10" height="9" rx="3"/>
+    <path d="M29 34 Q50 27 71 34 L74 58 Q71 80 67 96 L33 96 Q29 80 26 58 Z"/>
+    <ellipse cx="25" cy="58" rx="6" ry="14"/><ellipse cx="75" cy="58" rx="6" ry="14"/>
+    <ellipse cx="21" cy="84" rx="4.5" ry="13"/><ellipse cx="79" cy="84" rx="4.5" ry="13"/>
+    <path d="M33 94 L67 94 L69 110 L31 110 Z"/>
+    <ellipse cx="41" cy="130" rx="9.5" ry="25"/><ellipse cx="59" cy="130" rx="9.5" ry="25"/>
+    <ellipse cx="41" cy="170" rx="6.5" ry="18"/><ellipse cx="59" cy="170" rx="6.5" ry="18"/></g>`;
+  const front=base
+    +pair(el,[34,40,6,6.5,"deltAnt"])+pair(el,[27.5,44,3.6,7,"deltLat"])
+    +`<path d="M37 38 Q44 34.5 49 37 L49 54 Q42 57.5 36 52.5 Q34 45 37 38Z" fill="${c("peito")}"/><path d="M63 38 Q56 34.5 51 37 L51 54 Q58 57.5 64 52.5 Q66 45 63 38Z" fill="${c("peito")}"/>`
+    +pair(el,[25,61,4.3,9.5,"biceps"])
+    +`<rect x="42.5" y="58" width="15" height="34" rx="4" fill="${c("abd")}"/><path d="M50 59v32M43 69h14M43 79h14" stroke="var(--body)" stroke-width="1"/>`
+    +pair(el,[41,128,7.8,21,"quad"]);
+  const back=base
+    +pair(el,[34,40,6,6.5,"deltPost"])+pair(el,[27.5,44,3.6,7,"deltLat"])
+    +`<path d="M40 30 L60 30 L63.5 37 L50 45 L36.5 37Z" fill="${c("costas")}"/>`
+    +`<path d="M36.5 44 Q44 46 49 50 L49 74 Q42 71 37.5 63 Q34.5 54 36.5 44Z" fill="${c("costas")}"/><path d="M63.5 44 Q56 46 51 50 L51 74 Q58 71 62.5 63 Q65.5 54 63.5 44Z" fill="${c("costas")}"/>`
+    +`<rect x="46.5" y="75" width="7" height="19" rx="3" fill="${c("eret")}"/>`
+    +pair(el,[25,61,4.3,9.5,"triceps"])
+    +pair(el,[43,104,7.5,8.5,"glut"])+pair(el,[42,133,7,17,"isq"])+pair(el,[41,167,5.3,12.5,"pant"]);
+  const lab=big?`<text x="50" y="203" text-anchor="middle" class="mmlab">Frente</text><text x="160" y="203" text-anchor="middle" class="mmlab">Costas</text>`:"";
+  return `<svg class="mm ${big?"big":""}" viewBox="0 0 210 ${big?208:194}" role="img" aria-label="Músculos trabalhados"><g>${front}</g><g transform="translate(110 0)">${back}</g>${lab}</svg>`;
+}
+function musclesTxt(ex){
+  const p=(ex.prim||[]).map(m=>MUSCLES[m]).join(", "), s=(ex.sec||[]).map(m=>MUSCLES[m]).join(", ");
+  return {p,s};
+}
+function openExInfo(id){
+  const ex=findEx(id); if(!ex) return;
+  const {p,s}=musclesTxt(ex), c=CATS[ex.cat]||{};
+  $("#sheet").innerHTML=`<div class="row between"><h2 style="font-size:24px">${esc(ex.name)}</h2><button class="btn sm ghost" data-act="closem">Fechar</button></div>
+    ${animHtml(ex,"lg")}
+    <div class="exinfo"><div>${muscleMap(ex.prim,ex.sec,true)}<div class="legend tiny"><span><i style="background:var(--accent)"></i>Primário</span><span><i style="background:var(--sec)"></i>Secundário</span></div></div>
+    <div class="small" style="display:grid;gap:8px;align-content:start">
+      ${p?`<div><div class="label">Primários</div>${esc(p)}</div>`:""}
+      ${s?`<div><div class="label">Secundários</div>${esc(s)}</div>`:""}
+      ${!p&&!s?`<div class="muted">Preparatório: não conta volume.</div>`:""}
+      <div><div class="label">Tipo</div>${esc(c.n||"")}</div>
+      <div><div class="label">Plano</div><span class="num">${eff(ex)}×${repsTxt(ex)}</span>${targetRpe(ex)?` · RPE ${kg(targetRpe(ex))}`:""}<br><span class="muted">${esc(WARM[ex.warm]?.n||"")}</span></div>
+    </div></div>
+    ${ex.note?`<p class="small muted" style="margin:0">${esc(ex.note)}</p>`:""}
+    ${imgKey(ex)?`<p class="tiny muted" style="margin:0">Foto: Free Exercise DB (domínio público). A foto mostra o movimento; o equipamento da sua academia pode ser diferente.</p>`:""}`;
+  $("#modal").classList.add("open");
+}
+
 /* ================= Render ================= */
 let tab = lsGet(LS_TAB)||"treinos";
 function render(){
@@ -533,7 +621,7 @@ function viewTreinos(){
       <div style="padding:0 14px 14px"><ul class="exlist">`;
     for(const ex of w.exercises){
       const sg=suggest(ex);
-      h+=`<li><span>${esc(ex.name)}<br><span class="tiny muted">${esc(CATS[ex.cat]?.n||"")}${ex.warm!=="0"?" · "+WARM[ex.warm].n:""}</span></span>
+      h+=`<li class="withimg" data-act="exinfo" data-id="${esc(ex.id)}" role="button" tabindex="0">${animHtml(ex,"th")}<span>${esc(ex.name)}<br><span class="tiny muted">${esc(CATS[ex.cat]?.n||"")}${ex.warm!=="0"?" · "+WARM[ex.warm].n:""}</span></span>
         <span class="num small" style="text-align:right">${ex.extra?`<span class="chip acc" title="Séries somadas automaticamente">+${ex.extra}</span> `:""}${eff(ex)}×${repsTxt(ex)}${sg.load?"<br><span class='muted'>"+kg(sg.load)+" kg</span>":""}</span></li>`;
     }
     h+=`</ul><div class="row wrap" style="margin-top:10px"><button class="btn sm primary" data-act="start" data-w="${esc(w.id)}" ${live?"disabled":""}>Iniciar</button><button class="btn sm" data-act="editw" data-w="${esc(w.id)}">Editar</button></div></div></details>`;
@@ -653,6 +741,8 @@ function renderSession(){
   live.ex.forEach((e,ei)=>{
     const u=e.unit==="s";
     h+=`<div class="card ex"><div><h3>${esc(e.name)}</h3><div class="row wrap tiny" style="margin-top:4px"><span class="chip">${esc(e.target)}</span>${e.rpe?`<span class="chip acc">RPE ${kg(e.rpe)}</span>`:""}<span class="chip">${esc(CATS[e.cat]?.n||"")}</span></div></div>`;
+    {const xo=findEx(e.exId)||{id:e.exId,name:e.name,prim:[],sec:[]};
+     h+=`<div class="exmedia" data-act="exinfo" data-id="${esc(e.exId)}" role="button" tabindex="0" aria-label="Ver movimento e músculos de ${esc(e.name)}">${animHtml(xo,"md")}${muscleMap(xo.prim,xo.sec,false)}</div>`;}
     if(e.last) h+=`<div class="small muted">Última vez (${daysAgo(e.lastDate)}): <span class="num">${esc(e.last)}</span></div>`;
     if(e.sugg) h+=`<div class="sugg ${e.stall?"stall":""}">${esc(e.sugg)}</div>`;
     h+=`<div class="sets"><div class="set-h"><span>Série</span><span>kg</span><span>${u?"seg":"reps"}</span><span>RPE</span><span></span></div>`;
@@ -759,6 +849,7 @@ function renderEditor(){
   w.exercises.forEach((ex,i)=>{
     h+=`<div class="edit-ex" data-i="${i}"><div class="row between"><strong class="small">${i+1}.</strong><div class="row"><button class="btn sm" data-act="mv" data-i="${i}" data-d="-1" aria-label="Subir">↑</button><button class="btn sm" data-act="mv" data-i="${i}" data-d="1" aria-label="Descer">↓</button><button class="btn sm danger" data-act="rmex" data-i="${i}">Remover</button></div></div>
       <div class="field"><label for="n${i}">Exercício</label><input id="n${i}" data-k="name" value="${esc(ex.name)}"></div>
+      <div class="field"><label for="g${i}">Imagem</label><select id="g${i}" data-k="img"><option value="" ${!ex.img?"selected":""}>Automática${imgKey(Object.assign({},ex,{img:""}))?" ("+esc(IMG_NAMES[imgKey(Object.assign({},ex,{img:""}))])+")":" (nenhuma)"}</option>${IMG_KEYS.map(k=>`<option value="${k}" ${ex.img===k?"selected":""}>${esc(IMG_NAMES[k])}</option>`).join("")}<option value="none" ${ex.img==="none"?"selected":""}>Sem imagem</option></select></div>
       <div class="field"><label for="c${i}">Tipo (define faixa de reps e RPE do livro)</label><select id="c${i}" data-k="cat">${Object.entries(CATS).map(([k,c])=>`<option value="${k}" ${ex.cat===k?"selected":""}>${esc(c.n)}${c.rmin?` (${c.rmin}–${c.rmax}, RPE ${c.rpe[0]}–${c.rpe[1]})`:""}</option>`).join("")}</select></div>
       <div class="grid3"><div class="field"><label for="s${i}">Séries${ex.extra?` <span class="tiny" style="color:var(--accent)">+${ex.extra} auto</span>`:""}</label><input id="s${i}" data-k="sets" inputmode="numeric" value="${ex.sets}"></div>
       <div class="field"><label for="a${i}">${ex.unit==="s"?"Seg mín":"Reps mín"}</label><input id="a${i}" data-k="rmin" inputmode="numeric" value="${ex.rmin}"></div>
@@ -824,6 +915,7 @@ document.addEventListener("click",async ev=>{
   if(a==="tree"){const v=b.dataset.v;if(v==="r")treeStep=0;else{const n=TREE[treeStep][v];treeStep=typeof n==="number"?n:n}render()}
   if(a==="delsess") openConfirm("Excluir esta sessão do histórico?",async()=>{await deleteSession(b.dataset.id);render()});
   if(a==="editw") openEditor(b.dataset.w);
+  if(a==="exinfo"){ev.preventDefault();openExInfo(b.dataset.id)}
   if(a==="addw"){const used=new Set(program.workouts.map(w=>w.id));const id="ABCDEFGHIJ".split("").find(l=>!used.has(l))||("T"+Date.now()%1000);program.workouts.push({id,name:"Novo treino",sub:"",exercises:[]});saveProgram();openEditor(id)}
   if(a==="closem"){$("#modal").classList.remove("open");editing=null}
   if(a==="mv"){readEditorFields();const i=+b.dataset.i,j=i+(+b.dataset.d);if(j>=0&&j<editing.exercises.length){const x=editing.exercises;[x[i],x[j]]=[x[j],x[i]]}renderEditor()}
@@ -849,6 +941,9 @@ document.addEventListener("click",async ev=>{
   }
   if(a==="reset") openConfirm("Substituir seus treinos pelo programa inicial? O histórico continua.",()=>{program=clone(SEED);saveProgram();render()});
   if(a==="confirm-yes"){const f=confirmFn;confirmFn=null;$("#modal").classList.remove("open");f&&await f()}
+});
+document.addEventListener("keydown",ev=>{
+  if((ev.key==="Enter"||ev.key===" ")&&ev.target.matches&&ev.target.matches('[role="button"][data-act]')){ev.preventDefault();ev.target.click()}
 });
 document.addEventListener("input",ev=>{
   const t=ev.target;
