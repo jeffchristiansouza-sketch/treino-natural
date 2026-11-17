@@ -236,51 +236,61 @@ function restLabel(sec){
 /* ================= Programa inicial (das suas telas) ================= */
 function E(id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,extra){return Object.assign({id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,unit:"reps",rpe:null,note:""},extra||{})}
 const SEED = {
-  v:2,
+  v:3,
   settings:{level:"iniciante",phase:"livre",week:1,deload:false,ackFreq:true},
   workouts:[
     {id:"A",name:"Empurrar",sub:"Peito · Ombros · Tríceps · Abdômen",exercises:[
       E("supino-reto","Supino Reto (barra)","msl",4,9,9,40,2,"full",["peito"],["deltAnt","triceps"]),
       E("supino-decl","Supino Declinado (barra)","msl",3,9,9,40,2,"full",["peito"],["deltAnt","triceps"]),
       E("abd-decl","Abdominal Declinado","core",3,15,15,0,0,"0",["abd"],[]),
-      E("cruc-polia","Crucifixo em pé (polia)","as",3,10,12,20,2.5,"1",["peito"],["deltAnt"],{note:"Reps subiram de 7–8 para 10–12: carga estimada, ajuste na 1ª sessão"}),
+      E("cruc-polia","Crucifixo em pé (polia)","as",3,10,12,20,2.5,"2",["peito"],["deltAnt"],{note:"Reps subiram de 7–8 para 10–12: carga estimada, ajuste na 1ª sessão"}),
       E("abd-pernas","Abdominal com elevação das pernas","core",4,12,12,0,0,"0",["abd"],[]),
-      E("elev-lat-front","Elevação Lateral e Frontal (halteres)","as",3,10,12,8,2,"1",["deltLat"],["deltAnt"],{note:"Reps subiram de 6–8 para 10–12: carga estimada"}),
-      E("tri-tras","Extensão de Tríceps por Trás (polia)","as",3,8,9,40,2.5,"1",["triceps"],[])
+      E("elev-lat-front","Elevação Lateral e Frontal (halteres)","as",3,10,12,8,2,"2",["deltLat"],["deltAnt"],{note:"Reps subiram de 6–8 para 10–12: carga estimada"}),
+      E("tri-tras","Extensão de Tríceps por Trás (polia)","as",3,8,9,40,2.5,"2",["triceps"],[])
     ]},
     {id:"B",name:"Puxar",sub:"Costas · Deltoide posterior · Bíceps · Abdômen",exercises:[
-      E("remada-baixa","Remada Baixa (polia)","msg",3,9,9,80,5,"1",["costas"],["biceps","deltPost"]),
-      E("remada-t","Remada T (máquina)","msg",3,8,8,40,2.5,"1",["costas"],["biceps","deltPost"]),
-      E("cruc-inv","Crucifixo Inverso Sentado (máquina)","as",4,10,15,26,2.5,"1",["deltPost"],["costas"],{note:"Reps subiram de 7–11 para 10–15: carga estimada"}),
-      E("face-pull","Face Pull (polia, corda)","as",3,12,15,15,2.5,"0",["deltPost"],["costas"],{note:"Novo: carga estimada, ajuste na 1ª sessão"}),
-      E("rosca-alt","Rosca Alternada (halteres)","as",3,8,9,20,2,"1",["biceps"],[]),
-      E("rosca-martelo","Rosca Martelo (halteres)","as",3,8,12,14,2,"1",["biceps"],[],{note:"Reps subiram de 5–6 para 8–12: carga estimada"}),
+      E("remada-baixa","Remada Baixa (polia)","msg",3,9,9,80,5,"full",["costas"],["biceps","deltPost"]),
+      E("remada-t","Remada T (máquina)","msg",3,8,8,40,2.5,"2",["costas"],["biceps","deltPost"]),
+      E("cruc-inv","Crucifixo Inverso Sentado (máquina)","as",4,10,15,26,2.5,"2",["deltPost"],["costas"],{note:"Reps subiram de 7–11 para 10–15: carga estimada"}),
+      E("face-pull","Face Pull (polia, corda)","as",3,12,15,15,2.5,"2",["deltPost"],["costas"],{note:"Novo: carga estimada, ajuste na 1ª sessão"}),
+      E("rosca-alt","Rosca Alternada (halteres)","as",3,8,9,20,2,"2",["biceps"],[]),
+      E("rosca-martelo","Rosca Martelo (halteres)","as",3,8,12,14,2,"2",["biceps"],[],{note:"Reps subiram de 5–6 para 8–12: carga estimada"}),
       E("prancha-b","Prancha abdominal","core",3,45,45,0,0,"0",["abd"],[],{unit:"s"})
     ]},
     {id:"C",name:"Pernas",sub:"Quadríceps · Posterior · Glúteos · Panturrilha",exercises:[
       E("agach-sumo","Agachamento Sumô (halteres)","mil",4,6,6,26,2,"full",["quad","glut"],["eret"]),
       E("stiff","Levantamento Terra Pernas Rígidas (stiff)","mil",4,5,5,30,2,"full",["glut","isq","eret"],[]),
-      E("leg-press","Leg Press Inclinado","mig",3,9,10,100,10,"1",["quad","glut"],[]),
-      E("extensora","Extensão de Pernas (máquina)","ai",3,8,10,60,5,"0",["quad"],[],{note:"Pode fazer em super set com a flexora deitado para ganhar tempo (antagonistas)"}),
-      E("flexora","Flexão de Pernas Deitado (máquina)","ai",3,8,10,26,2.5,"0",["isq"],[]),
-      E("flexora-sent","Flexão de Pernas Sentado (máquina)","ai",3,10,12,25,2.5,"0",["isq"],[],{note:"Novo: carga estimada, ajuste na 1ª sessão"}),
-      E("pant-sent","Elevação de Panturrilha Sentado (máquina)","ai",5,12,15,30,5,"0",["pant"],[],{rpe:9}),
+      E("leg-press","Leg Press Inclinado","mig",3,9,10,100,10,"2",["quad","glut"],[]),
+      E("extensora","Extensão de Pernas (máquina)","ai",3,8,10,60,5,"2",["quad"],[],{note:"Pode fazer em super set com a flexora deitado para ganhar tempo (antagonistas)"}),
+      E("flexora","Flexão de Pernas Deitado (máquina)","ai",3,8,10,26,2.5,"2",["isq"],[]),
+      E("flexora-sent","Flexão de Pernas Sentado (máquina)","ai",3,10,12,25,2.5,"2",["isq"],[],{note:"Novo: carga estimada, ajuste na 1ª sessão"}),
+      E("pant-sent","Elevação de Panturrilha Sentado (máquina)","ai",5,12,15,30,5,"2",["pant"],[],{rpe:9}),
       E("pant-uni","Elevação de Panturrilha Unilateral","ai",5,12,12,0,0,"0",["pant"],[])
     ]},
     {id:"D",name:"Ombros, braços e dorsal",sub:"Deltoides · Costas · Bíceps · Tríceps",exercises:[
       E("rot-ext","Rotação de Ombros Externa (polia)","prep",3,17,20,5,1,"1",[],[]),
       E("desenv","Desenvolvimento de Ombros Sentado (halteres)","msl",4,8,10,14,2,"full",["deltAnt","deltLat"],["triceps"]),
       E("puxada-aberta","Puxada com Pegada Aberta (barra fixa)","msl",3,6,7,0,0,"full",["costas"],["biceps","deltPost"],{note:"Peso corporal: aqueça com 1–2 séries leves na puxada na polia ou com elástico"}),
-      E("elev-lat","Elevação Lateral (halteres)","as",4,12,15,6,1,"0",["deltLat"],[],{note:"Novo: carga estimada, ajuste na 1ª sessão"}),
-      E("scott","Rosca Scott pegada fechada (barra)","as",3,8,12,24,2,"1",["biceps"],[],{note:"Reps subiram de 6–10 para 8–12: carga estimada"}),
-      E("tri-corda","Extensão de Tríceps com corda (polia)","as",3,9,12,30,2.5,"1",["triceps"],[])
+      E("elev-lat","Elevação Lateral (halteres)","as",4,12,15,6,1,"2",["deltLat"],[],{note:"Novo: carga estimada, ajuste na 1ª sessão"}),
+      E("scott","Rosca Scott pegada fechada (barra)","as",3,8,12,24,2,"2",["biceps"],[],{note:"Reps subiram de 6–10 para 8–12: carga estimada"}),
+      E("tri-corda","Extensão de Tríceps com corda (polia)","as",3,9,12,30,2.5,"2",["triceps"],[])
     ]}
   ]
 };
 // Atualiza programas salvos na versão 1 com os ajustes, mantendo cargas já progredidas quando a faixa de reps não mudou
 function migrate(p){
   if(!p||!p.workouts) return clone(SEED);
-  if((p.v||1)>=2) return p;
+  if((p.v||1)===2){
+    const RANK={"0":0,"1":1,"2":2,"full":3}, seedW={};
+    SEED.workouts.forEach(w=>w.exercises.forEach(e=>seedW[e.id]=e.warm));
+    p.workouts.forEach(w=>w.exercises.forEach(e=>{
+      let t=seedW[e.id];
+      if(!t) t=(e.load>0&&e.cat!=="prep"&&e.cat!=="core")?"2":e.warm;
+      if((RANK[t]||0)>(RANK[e.warm]||0)) e.warm=t;
+    }));
+    p.v=3; migrated=true; return p;
+  }
+  if((p.v||1)>=3) return p;
   const old={};p.workouts.forEach(w=>w.exercises.forEach(e=>old[e.id]=e));
   const n=clone(SEED);
   n.settings=Object.assign({},p.settings||{},{ackFreq:true});
@@ -432,9 +442,13 @@ function analysis(){
     if(ex.rmin<c.rmin||ex.rmax>c.rmax) rr.push(`${ex.name} (${repsTxt(ex)}; livro: ${c.rmin}–${c.rmax})`);
   }
   if(rr.length) out.push({t:"Faixa de repetições fora da tabela do livro para o tipo de exercício: "+rr.join("; ")+". Isoladores rendem melhor com mais repetições, acumulando volume pelas reps.",k:"warn"});
-  const wu=[];
-  for(const w of program.workouts)for(const ex of w.exercises){if((ex.cat==="msl"||ex.cat==="mil")&&ex.warm!=="full")wu.push(ex.name)}
-  if(wu.length) out.push({t:"Multiarticulares livres sem o aquecimento completo do livro (pelo menos 2 warming sets, a primeira a 40% da top set, mais 2 feeder sets longe da falha): "+wu.join(", ")+".",k:"info"});
+  const wu=[],wf=[];
+  for(const w of program.workouts)for(const ex of w.exercises){
+    if((ex.cat==="msl"||ex.cat==="mil")&&ex.warm!=="full") wf.push(ex.name);
+    else if(ex.load>0&&ex.cat!=="prep"&&ex.cat!=="core"&&(ex.warm==="0"||ex.warm==="1")) wu.push(ex.name);
+  }
+  if(wf.length) out.push({t:"Multiarticulares livres sem o aquecimento completo do livro (2 warming sets, a primeira a 40% da top set, mais 2 feeder sets longe da falha): "+wf.join(", ")+".",k:"info"});
+  if(wu.length) out.push({t:"Com menos de 2 séries de aquecimento (o livro recomenda pelo menos 2 em qualquer exercício): "+wu.join(", ")+".",k:"info"});
   if(!out.some(a=>a.k==="warn")) out.push({t:"Tudo dentro das recomendações do livro.",k:"ok"});
   return out;
 }
