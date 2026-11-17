@@ -744,7 +744,9 @@ function presc(kind,c){
   return {kind,segs,sum,fc,ccPace,ccM,ccSec,tPace,tSec,tDist,reps,rest,testPace,distKm:Math.round(dist/100)/10,c};
 }
 function weekQueue(c){
-  c=c||cycle(); const third=rc().third==="cv"?"cv":"cc", fourth=third==="cv"?"cc":"cv";
+  c=c||cycle(); const r=rc(); let third=r.third==="cv"?"cv":"cc";
+  if(r.swapWeek===ymd(mondayOf(new Date()))) third=third==="cv"?"cc":"cv";   // troca vale só para a semana atual
+  const fourth=third==="cv"?"cc":"cv";
   if(c.kind==="taf"||c.kind==="pos") return [{k:"leve",opt:true}];
   if(c.kind==="pre") return [{k:"cc"},{k:"tiai"},{k:"leve",opt:true}];
   return [{k:"tiai"},{k:"cc"},{k:third,swap:true},{k:fourth,opt:true}];
@@ -784,9 +786,9 @@ function viewCorrida(){
     h+=`<div class="card next"><div class="label">Próxima corrida</div><h2>${esc(RUNK[next.k].n)}</h2>
       <p class="small" style="margin:6px 0">${esc(p.sum)}</p>${p.fc?`<p class="tiny muted" style="margin:0 0 6px">FC alvo: ${esc(p.fc)}</p>`:""}
       ${warn?`<div class="sugg stall small">${esc(warn)}</div>`:""}
-      <div class="row wrap" style="margin-top:10px"><button class="btn primary" data-act="watch" data-k="${next.k}">Ver para o relógio</button><button class="btn" data-act="runstart" data-k="${next.k}">Roteiro no celular</button><button class="btn" data-act="runlog" data-k="${next.k}">Registrar</button>${next.swap?`<button class="btn ghost sm" data-act="third">Trocar por ${r.third==="cv"?"contínua":"fartlek"}</button>`:""}</div></div>`;
+      <div class="row wrap" style="margin-top:10px"><button class="btn primary" data-act="watch" data-k="${next.k}">Ver para o relógio</button><button class="btn" data-act="runstart" data-k="${next.k}">Roteiro no celular</button><button class="btn" data-act="runlog" data-k="${next.k}">Registrar</button>${next.swap?`<button class="btn ghost sm" data-act="third">Trocar por ${next.k==="cv"?"contínua":"fartlek"} nesta semana</button>`:""}</div></div>`;
   }else h+=`<div class="card next"><div class="label">Semana</div><h2>Corridas da semana completas</h2><p class="small muted">Se correr mais, registre abaixo.</p></div>`;
-  h+=`<div class="card"><h2 style="font-size:22px;margin-bottom:8px">Corridas desta semana</h2><ul class="exlist">${q.map((x,i)=>`<li><span>${x.done?"✓ ":""}<strong>${esc(RUNK[x.k].s)}</strong>${x.opt?' <span class="tiny muted">opcional</span>':""}${x.extra?' <span class="tiny muted">extra</span>':""}<br><span class="tiny muted">${x.done?esc(runLine(x.done)):"a fazer"}</span></span><span>${x.done?"":`<button class="btn sm" data-act="watch" data-k="${x.k}">Ver</button>`}</span></li>`).join("")}</ul>
+  h+=`<div class="card"><h2 style="font-size:22px;margin-bottom:8px">Corridas desta semana</h2><ul class="exlist">${q.map((x,i)=>`<li><span>${x.done?"✓ ":""}<strong>${esc(RUNK[x.k].s)}</strong>${x.opt?' <span class="tiny muted">opcional</span>':""}${x.extra?' <span class="tiny muted">extra</span>':""}<br><span class="tiny muted">${x.done?esc(runLine(x.done)):"a fazer"}</span></span><span class="row" style="gap:6px">${x.done?"":`${x.swap?`<button class="btn sm ghost" data-act="third">Trocar</button>`:""}<button class="btn sm" data-act="watch" data-k="${x.k}">Ver</button>`}</span></li>`).join("")}</ul>
     <p class="tiny muted" style="margin:8px 0 0">Sem dia fixo: a semana vai de segunda a domingo e cada corrida registrada marca a próxima da lista.</p></div>`;
   h+=`<div class="card"><h2 style="font-size:22px;margin-bottom:6px">Roteiros desta semana</h2>${["tiai","cc","cv","leve"].map(k=>{const p=presc(k,c);return `<details style="border-top:1px solid var(--line);padding:8px 0"><summary class="row between"><span><strong>${esc(RUNK[k].n)}</strong><br><span class="tiny muted">${esc(p.sum)}</span></span><span class="muted">▾</span></summary><div class="watch" style="margin:8px 0">${watchHtml(p)}</div><div class="row wrap"><button class="btn sm primary" data-act="watch" data-k="${k}">Ver para o relógio</button><button class="btn sm" data-act="runstart" data-k="${k}">Roteiro no celular</button><button class="btn sm" data-act="runlog" data-k="${k}">Registrar</button></div></details>`}).join("")}</div>`;
   const last=runs.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,25);
@@ -832,7 +834,8 @@ function runFeedback(r){
   if(pace) out.push(`Ritmo médio: ${paceStr(pace)}.`);
   if(r.kind==="cc"&&pace){
     if(pace<p.ccPace-12) out.push(`Mais rápido que o previsto para a contínua (${paceStr(p.ccPace)}). A contínua é controlada pelo ritmo e pela FC; forçar aqui tira energia do intervalado.`);
-    else if(pace>p.ccPace+20) out.push(`Mais lento que o previsto (${paceStr(p.ccPace)}). Se foi por cansaço, observe como chega no próximo treino.`);
+    else if(pace>p.ccPace+15&&r.fc&&karv(.7)&&r.fc<karv(.7)) out.push(`Mais lento que o previsto (${paceStr(p.ccPace)}) e com a FC abaixo da faixa: na próxima, dá para acelerar um pouco.`);
+    else if(pace>p.ccPace+15) out.push(`Mais lento que o previsto (${paceStr(p.ccPace)}). Se você desacelerou para manter a FC na faixa, está certo: é o que o manual pede.`);
     else out.push("Dentro do ritmo previsto.");
   }
   if(r.kind==="cc"&&r.fc&&karv(.8)&&r.fc>karv(.8)) out.push(`FC média acima de 80% da reserva (${karv(.8)} bpm): reduza um pouco o ritmo na próxima.`);
@@ -846,6 +849,17 @@ function runFeedback(r){
     if(r.kind==="tiai"&&r.pse<=4) out.push("Esforço baixo para o intervalado: confira se está no tempo do tiro.");
   }
   return out;
+}
+// Sugere baixar o teste quando as 3 últimas contínuas saíram bem mais lentas que o previsto
+function slowCCAdvice(){
+  const T=rc().test12, cc=runs.filter(r=>r.kind==="cc"&&r.distKm&&r.durSec).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
+  if(cc.length<3||T<=1300) return null;
+  if(rc().slowAck&&cc.some(r=>r.date<=rc().slowAck)) return null;
+  const slow=cc.every(r=>{const p=presc("cc",cycle(new Date(r.date)));const pace=r.durSec/r.distKm;
+    return pace>p.ccPace+15&&!(r.fc&&karv(.7)&&r.fc<karv(.7))});
+  if(!slow) return null;
+  const nT=T-100, now=presc("cc"), nxt=(()=>{const r=rc(),o=r.test12;r.test12=nT;const p=presc("cc");r.test12=o;return p})();
+  return {T,nT,text:`Suas 3 últimas contínuas saíram mais de 15 s/km mais lentas que o ritmo previsto. É sinal de que o teste de ${T} m está alto para você hoje. Baixando para ${nT} m, a contínua desta semana passa de ${paceStr(now.ccPace)} para ${paceStr(nxt.ccPace)}, e os outros ritmos se ajustam juntos.`};
 }
 function openTafReg(){
   const r=rc();
@@ -1315,7 +1329,7 @@ document.addEventListener("click",async ev=>{
   if(a==="runpause"&&runner){ if(runner.paused){runner.segEnd=Date.now()+runner.left*1000;runner.paused=false}else{runner.left=(runner.segEnd-Date.now())/1000;runner.paused=true} renderRunner(); runTick(); }
   if(a==="runnext"&&runner){ nextSeg(); }
   if(a==="runstop"&&runner){ endRun(); }
-  if(a==="third"){ const r=rc(); r.third=r.third==="cv"?"cc":"cv"; saveProgram(); render(); }
+  if(a==="third"){ const r=rc(), wk=ymd(mondayOf(new Date())); r.swapWeek=r.swapWeek===wk?null:wk; saveProgram(); render(); toast(r.swapWeek?"Troca feita só para esta semana.":"Semana voltou ao padrão."); }
   if(a==="runcfg") openRunCfg();
   if(a==="saverc"){
     const r=rc(), T=parseInt($("#rcT").value); if(T>=800&&T<=5000) r.test12=T;
@@ -1330,10 +1344,13 @@ document.addEventListener("click",async ev=>{
     const r={id:"r"+Date.now(),date:dt.toISOString(),kind:$("#rlK").value,distKm:km,durSec:mi*60+se||null,fc:n($("#rlFc").value),fcRec:n($("#rlFr").value),tiros:n($("#rlT").value),pse:rlPse,note:$("#rlN").value.trim(),wk:cycle(dt).wk||null};
     if(!r.distKm&&!r.durSec){toast("Informe a distância ou o tempo.");return}
     await saveRun(r); render(); const fb=runFeedback(r);
-    openInfo("Corrida salva", fb.length?fb.join(" "):"Registro salvo.");
+    const adv=r.kind==="cc"?slowCCAdvice():null;
+    openInfo("Corrida salva", fb.length?fb.join(" "):"Registro salvo.", adv?`<div class="sugg stall small">${esc(adv.text)}</div><div class="row wrap"><button class="btn primary" data-act="lowertest" data-v="${adv.nT}">Baixar para ${adv.nT} m</button><button class="btn" data-act="keeptest">Manter ${adv.T} m</button></div>`:"");
   }
   if(a==="delrun") openConfirm("Excluir esta corrida do histórico?",async()=>{await deleteRun(b.dataset.id);render()});
   if(a==="tafreg") openTafReg();
+  if(a==="lowertest"){ const r=rc(); r.test12=+b.dataset.v; r.slowAck=new Date().toISOString(); saveProgram(); $("#modal").classList.remove("open"); render(); toast(`Teste ajustado para ${r.test12} m.`); }
+  if(a==="keeptest"){ rc().slowAck=new Date().toISOString(); saveProgram(); $("#modal").classList.remove("open"); toast("Mantido. O app volta a avisar se acontecer de novo."); }
   if(a==="savetaf"){
     const r=rc(), n=v=>{const x=parseInt(v);return isNaN(x)?null:x};
     const t={date:$("#tfD").value||ymd(new Date()),dist:n($("#tfC").value),fb:n($("#tfFb").value),fbf:n($("#tfFbf").value),abd:n($("#tfA").value)};
@@ -1394,7 +1411,7 @@ document.addEventListener("change",async ev=>{
   if(ev.target.id==="bkFile"&&ev.target.files[0]){const t=await ev.target.files[0].text();const box=$("#ioText");if(box)box.value=t;ev.target.value=""}
 });
 let confirmFn=null;
-function openInfo(title,msg){$("#sheet").innerHTML=`<h2 style="font-size:24px">${esc(title)}</h2><p>${esc(msg)}</p><div class="row"><button class="btn primary" data-act="closem">Entendi</button></div>`;$("#modal").classList.add("open")}
+function openInfo(title,msg,extra){$("#sheet").innerHTML=`<h2 style="font-size:24px">${esc(title)}</h2><p>${esc(msg)}</p>${extra||""}<div class="row"><button class="btn ${extra?"":"primary"}" data-act="closem">${extra?"Fechar":"Entendi"}</button></div>`;$("#modal").classList.add("open")}
 function openConfirm(msg,fn){confirmFn=fn;$("#sheet").innerHTML=`<p>${esc(msg)}</p><div class="row"><button class="btn" data-act="closem">Cancelar</button><button class="btn primary" data-act="confirm-yes">Confirmar</button></div>`;$("#modal").classList.add("open")}
 function openText(msg,val,isImport){$("#sheet").innerHTML=`<div class="field"><label for="ioText">${esc(msg)}</label><textarea id="ioText" rows="8" ${isImport?"":"readonly"}>${esc(val)}</textarea></div><div class="row"><button class="btn" data-act="closem">Fechar</button>${isImport?'<button class="btn" data-act="pickfile">Escolher arquivo</button><button class="btn primary" data-act="doimport">Restaurar</button>':""}</div>`;$("#modal").classList.add("open");if(!isImport){const t=$("#ioText");t.focus();t.select()}}
 $("#modal").addEventListener("click",ev=>{if(ev.target.id==="modal"){$("#modal").classList.remove("open");editing=null}});

@@ -1,4 +1,4 @@
-const CACHE = "treino-natural-v10";
+const CACHE = "treino-natural-v11";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png",
   "./img/abd-decl-0.jpg",
   "./img/abd-decl-1.jpg",
