@@ -1,4 +1,4 @@
-const CACHE = "treino-natural-v8";
+const CACHE = "treino-natural-v9";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png",
   "./img/abd-decl-0.jpg",
   "./img/abd-decl-1.jpg",
@@ -14,6 +14,8 @@ const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", 
   "./img/desenv-1.jpg",
   "./img/elev-lat-0.jpg",
   "./img/elev-lat-1.jpg",
+  "./img/flexao-0.jpg",
+  "./img/flexao-1.jpg",
   "./img/elev-lat-polia-0.jpg",
   "./img/elev-lat-polia-1.jpg",
   "./img/elev-lat-front-0.jpg",

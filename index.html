@@ -55,8 +55,8 @@ header.top h1 span{color:var(--accent)}
 .pill.bad{border-color:var(--bad);color:var(--bad)}
 .pill.good{border-color:var(--good);color:var(--good)}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
-nav.tabs .inner{display:grid;grid-template-columns:repeat(4,1fr);width:100%;max-width:640px}
-nav.tabs button{background:none;border:0;padding:10px 4px 12px;color:var(--muted);font-family:var(--display);font-size:16px;letter-spacing:.06em;text-transform:uppercase;border-top:3px solid transparent}
+nav.tabs .inner{display:grid;grid-template-columns:repeat(5,1fr);width:100%;max-width:640px}
+nav.tabs button{background:none;border:0;padding:10px 4px 12px;color:var(--muted);font-family:var(--display);font-size:14.5px;letter-spacing:.04em;text-transform:uppercase;border-top:3px solid transparent}
 nav.tabs button[aria-current="page"]{color:var(--ink);border-top-color:var(--accent)}
 section.view{padding-top:16px;display:grid;gap:14px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
@@ -176,6 +176,15 @@ details summary::-webkit-details-marker{display:none}
 .exlist li.withimg{grid-template-columns:56px 1fr auto;align-items:center;cursor:pointer}
 .exmedia{display:flex;gap:10px;align-items:center;cursor:pointer;border-radius:8px}
 @media (max-width:400px){.exinfo{grid-template-columns:1fr;justify-items:center}.mm.big{height:200px}}
+#runner{position:fixed;inset:0;z-index:12;background:var(--bg);overflow-y:auto;display:none}
+#runner.open{display:block}
+#runner .inner{max-width:640px;margin:0 auto;padding:0 16px 40px}
+.runbox{margin-top:16px;border:1px solid var(--line);border-radius:16px;padding:20px 16px;text-align:center;background:var(--surface)}
+.runbox.fast{border-color:var(--accent);background:#2b1d13}
+.runbox.rec,.runbox.cool{border-color:var(--good)}
+.runbox .rlab{font-family:var(--display);font-size:24px;line-height:1.15;margin-top:6px;text-wrap:balance}
+.runbox .rtime{font-family:var(--display);font-weight:700;font-size:84px;line-height:1;margin-top:10px}
+.runbox .rpace{color:var(--accent);font-size:18px;margin-top:4px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -189,11 +198,13 @@ details summary::-webkit-details-marker{display:none}
 </div>
 <nav class="tabs" aria-label="Seções"><div class="inner">
   <button data-tab="treinos" aria-current="page">Treinos</button>
+  <button data-tab="corrida">Corrida</button>
   <button data-tab="volume">Volume</button>
   <button data-tab="plano">Plano</button>
   <button data-tab="historico">Histórico</button>
 </div></nav>
 
+<div id="runner" role="dialog" aria-modal="true" aria-label="Roteiro de corrida"><div class="inner" id="runnerInner"></div></div>
 <div id="session" role="dialog" aria-modal="true" aria-label="Treino em andamento"><div class="inner" id="sessionInner"></div></div>
 <div class="timer" id="timer"><div class="inner">
   <div class="big" id="tBig">0:00</div>
@@ -218,7 +229,8 @@ const CATS = {
   msg:{n:"Multiarticular superior guiado",rmin:6,rmax:15,rpe:[6,10],multi:true,region:"sup"},
   as:{n:"Acessório superior",rmin:8,rmax:20,rpe:[7,10],multi:false,region:"sup"},
   core:{n:"Core / abdômen",region:"core"},
-  prep:{n:"Preparatório (não conta volume)",region:"prep"}
+  prep:{n:"Preparatório (não conta volume)",region:"prep"},
+  taf:{n:"Prova do TAF (manual de TFM)",region:"taf"}
 };
 const MUSCLES = {
   peito:"Peito", costas:"Costas", deltAnt:"Deltoide anterior", deltLat:"Deltoide lateral", deltPost:"Deltoide posterior",
@@ -256,7 +268,8 @@ function restLabel(sec){
 /* ================= Programa inicial (das suas telas) ================= */
 function E(id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,extra){return Object.assign({id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,unit:"reps",rpe:null,note:""},extra||{})}
 const SEED = {
-  v:4,
+  v:5,
+  run:{test12:2900,testNote:"3,11 km em 12min51s, convertido para 12 min",tafDate:"2027-04-05",tafProv:true,birth:"",fcRep:52,third:"cv",tafs:[]},
   settings:{level:"iniciante",phase:"livre",week:1,deload:false,ackFreq:true},
   workouts:[
     {id:"A",name:"Empurrar",sub:"Peito · Ombros · Tríceps · Abdômen",exercises:[
@@ -266,9 +279,11 @@ const SEED = {
       E("cruc-polia","Crucifixo em pé (polia)","as",3,10,12,20,2.5,"2",["peito"],["deltAnt"],{note:"Reps subiram de 7–8 para 10–12: carga estimada, ajuste na 1ª sessão"}),
       E("abd-pernas","Abdominal com elevação das pernas","core",4,12,12,0,0,"0",["abd"],[]),
       E("elev-lat-front","Elevação Lateral e Frontal (halteres)","as",3,10,12,8,2,"2",["deltLat"],["deltAnt"],{note:"Reps subiram de 6–8 para 10–12: carga estimada"}),
-      E("tri-tras","Extensão de Tríceps por Trás (polia)","as",3,8,9,40,2.5,"2",["triceps"],[])
+      E("tri-tras","Extensão de Tríceps por Trás (polia)","as",3,8,9,40,2.5,"2",["triceps"],[]),
+      E("fb-a","Flexão de Braços (TAF)","taf",3,1,1,0,0,"0",["peito"],["triceps","deltAnt"],{taf:"fb",note:"Plano de barra e flexão do manual de TFM (Quadro 7-3)"})
     ]},
     {id:"B",name:"Puxar",sub:"Costas · Deltoide posterior · Bíceps · Abdômen",exercises:[
+      E("fbf-b","Flexão na Barra Fixa (TAF)","taf",2,1,1,0,0,"0",["costas"],["biceps","deltPost"],{taf:"fbf",taperSkip:true,note:"Plano de barra e flexão do manual de TFM (Quadro 7-3)"}),
       E("remada-baixa","Remada Baixa (polia)","msg",3,9,9,80,5,"full",["costas"],["biceps","deltPost"]),
       E("remada-t","Remada T (máquina)","msg",3,8,8,40,2.5,"2",["costas"],["biceps","deltPost"]),
       E("cruc-inv","Crucifixo Inverso Sentado (máquina)","as",4,10,15,26,2.5,"2",["deltPost"],["costas"],{note:"Reps subiram de 7–11 para 10–15: carga estimada"}),
@@ -285,12 +300,13 @@ const SEED = {
       E("flexora","Flexão de Pernas Deitado (máquina)","ai",3,8,10,26,2.5,"2",["isq"],[]),
       E("flexora-sent","Flexão de Pernas Sentado (máquina)","ai",3,10,12,25,2.5,"2",["isq"],[],{note:"Novo: carga estimada, ajuste na 1ª sessão"}),
       E("pant-sent","Elevação de Panturrilha Sentado (máquina)","ai",5,12,15,30,5,"2",["pant"],[],{rpe:9}),
-      E("pant-uni","Elevação de Panturrilha Unilateral","ai",5,12,12,0,0,"0",["pant"],[])
+      E("pant-uni","Elevação de Panturrilha Unilateral","ai",5,12,12,0,0,"0",["pant"],[]),
+      E("fb-c","Flexão de Braços (TAF)","taf",3,1,1,0,0,"0",["peito"],["triceps","deltAnt"],{taf:"fb",taperSkip:true,note:"No dia de perna, com a parte de cima descansada"})
     ]},
     {id:"D",name:"Ombros, braços e dorsal",sub:"Deltoides · Costas · Bíceps · Tríceps",exercises:[
       E("rot-ext","Rotação de Ombros Externa (polia)","prep",3,17,20,5,1,"1",[],[]),
       E("desenv","Desenvolvimento de Ombros Sentado (halteres)","msl",4,8,10,14,2,"full",["deltAnt","deltLat"],["triceps"]),
-      E("puxada-aberta","Puxada com Pegada Aberta (barra fixa)","msl",3,6,7,0,0,"full",["costas"],["biceps","deltPost"],{note:"Peso corporal: aqueça com 1–2 séries leves na puxada na polia ou com elástico"}),
+      E("puxada-aberta","Flexão na Barra Fixa (TAF)","taf",3,1,1,0,0,"0",["costas"],["biceps","deltPost"],{taf:"fbf",note:"Aqueça com 1 ou 2 séries leves na puxada na polia ou com elástico"}),
       E("elev-lat-polia","Elevação Lateral (polia)","as",4,12,15,5,2.5,"2",["deltLat"],[],{note:"Carga por braço estimada: ajuste na 1ª sessão. Pode fazer em pé, um braço de cada vez"}),
       E("scott","Rosca Scott pegada fechada (barra)","as",3,8,12,24,2,"2",["biceps"],[],{note:"Reps subiram de 6–10 para 8–12: carga estimada"}),
       E("tri-corda","Extensão de Tríceps com corda (polia)","as",3,9,12,30,2.5,"2",["triceps"],[])
@@ -300,6 +316,14 @@ const SEED = {
 // Atualiza programas salvos na versão 1 com os ajustes, mantendo cargas já progredidas quando a faixa de reps não mudou
 function migrate(p){
   if(!p||!p.workouts) return clone(SEED);
+  if((p.v||1)<2){
+    const old={};p.workouts.forEach(w=>w.exercises.forEach(e=>old[e.id]=e));
+    const n=clone(SEED);
+    n.settings=Object.assign({},p.settings||{},{ackFreq:true});
+    n.workouts.forEach(w=>w.exercises.forEach(e=>{const o=old[e.id];if(o&&o.rmin===e.rmin&&o.rmax===e.rmax&&o.load)e.load=o.load}));
+    migrated=true;
+    return n;
+  }
   if((p.v||1)===2){
     const RANK={"0":0,"1":1,"2":2,"full":3}, seedW={};
     SEED.workouts.forEach(w=>w.exercises.forEach(e=>seedW[e.id]=e.warm));
@@ -317,13 +341,18 @@ function migrate(p){
       if(i>=0){const o=w.exercises[i],n=clone(nw);n.sets=o.sets;n.warm=o.warm;w.exercises[i]=n}});
     p.v=4; migrated=true;
   }
+  if(p.v===4){
+    // Corrida (manual de TFM) e plano de barra e flexão integrado aos treinos
+    const sx=id=>clone(SEED.workouts.flatMap(w=>w.exercises).find(e=>e.id===id));
+    p.workouts.forEach(w=>w.exercises.forEach((e,i)=>{if(e.id==="puxada-aberta")w.exercises[i]=sx("puxada-aberta")}));
+    const W=id=>p.workouts.find(w=>w.id===id), has=(w,id)=>w.exercises.some(e=>e.id===id);
+    if(W("A")&&!has(W("A"),"fb-a")) W("A").exercises.push(sx("fb-a"));
+    if(W("B")&&!has(W("B"),"fbf-b")) W("B").exercises.unshift(sx("fbf-b"));
+    if(W("C")&&!has(W("C"),"fb-c")) W("C").exercises.push(sx("fb-c"));
+    if(!p.run) p.run=clone(SEED.run);
+    p.v=5; migrated=true;
+  }
   return p;
-  const old={};p.workouts.forEach(w=>w.exercises.forEach(e=>old[e.id]=e));
-  const n=clone(SEED);
-  n.settings=Object.assign({},p.settings||{},{ackFreq:true});
-  n.workouts.forEach(w=>w.exercises.forEach(e=>{const o=old[e.id];if(o&&o.rmin===e.rmin&&o.rmax===e.rmax&&o.load)e.load=o.load}));
-  migrated=true;
-  return n;
 }
 let migrated=false;
 
@@ -331,7 +360,9 @@ let migrated=false;
 let program = null;        // treinos + configurações
 let sessions = [];         // sessões concluídas, mais recente primeiro
 let live = null;           // sessão em andamento
+let runs = [];             // corridas registradas
 let store = {mode:"local", db:null, uid:null};
+const LS_RUNS="tn.runs";
 const LS_PROG="tn.program", LS_SESS="tn.sessions", LS_LIVE="tn.live", LS_TAB="tn.tab";
 function lsGet(k){try{const v=localStorage.getItem(k);return v?JSON.parse(v):null}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -340,10 +371,12 @@ const clone = o => JSON.parse(JSON.stringify(o));
 
 function progRef(){return store.db.doc("data/users/"+store.uid+"/program")}
 function sessCol(){return progRef().collection("sessions")}
+function runCol(){return progRef().collection("runs")}
 
 async function initStore(){
   program = migrate(lsGet(LS_PROG) || clone(SEED)); lsSet(LS_PROG,program);
   sessions = lsGet(LS_SESS) || [];
+  runs = lsGet(LS_RUNS) || [];
   live = lsGet(LS_LIVE);
   try{ if(navigator.storage&&navigator.storage.persist) await navigator.storage.persist(); }catch(e){}
   render();
@@ -361,6 +394,15 @@ async function saveSession(s){
   lsSet(LS_SESS,sessions);
   if(store.mode==="cloud"){try{await sessCol().doc(s.id).set(s)}catch(e){toast("Sessão salva só neste aparelho.")}}
 }
+async function saveRun(r){
+  runs=[r,...runs.filter(x=>x.id!==r.id)].sort((a,b)=>b.date.localeCompare(a.date));
+  lsSet(LS_RUNS,runs);
+  if(store.mode==="cloud"){try{await runCol().doc(r.id).set(r)}catch(e){toast("Corrida salva só neste aparelho.")}}
+}
+async function deleteRun(id){
+  runs=runs.filter(r=>r.id!==id); lsSet(LS_RUNS,runs);
+  if(store.mode==="cloud"){try{await runCol().doc(id).delete()}catch(e){}}
+}
 async function deleteSession(id){
   sessions = sessions.filter(s=>s.id!==id);
   lsSet(LS_SESS,sessions);
@@ -377,9 +419,10 @@ function roundTo(n,step){step=step||1;return Math.round(n/step)*step}
 function dstr(iso){const d=new Date(iso);return d.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"short"})}
 function daysAgo(iso){const d=Math.floor((Date.now()-new Date(iso))/864e5);return d===0?"hoje":d===1?"ontem":d+" dias atrás"}
 function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("on");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("on"),2600)}
-function repsTxt(ex){const u=ex.unit==="s"?" s":"";return ex.rmin===ex.rmax?ex.rmin+u:ex.rmin+"–"+ex.rmax+u}
+function repsTxt(ex){if(ex.cat==="taf")return "máx";const u=ex.unit==="s"?" s":"";return ex.rmin===ex.rmax?ex.rmin+u:ex.rmin+"–"+ex.rmax+u}
 function phase(){return PHASES.find(p=>p.id===program.settings.phase)||PHASES[0]}
 function targetRpe(ex){
+  if(ex.cat==="taf") return tafPlan(ex).real?10:9;
   if(ex.rpe) return ex.rpe;
   const c=CATS[ex.cat]; const p=phase().rpe;
   if(!c||!c.rpe) return null;
@@ -399,8 +442,26 @@ function historyFor(exId){
   }
   return out; // mais recente primeiro
 }
+function tafWeek(){const c=cycle();return Math.min(12,Math.max(1,c.wk||1))}
+function tafPlan(ex){
+  const w=tafWeek(), P=ex.taf==="fbf"?FBF_PLAN:FB_PLAN, R=ex.taf==="fbf"?FBF_RANGE:FB_RANGE;
+  let sets=P[w][0]; if(w>=11&&ex.taperSkip) sets=0;
+  return {sets,rest:P[w][1],range:R[w],w,real:w>=11};
+}
+function tafSuggest(ex,h){
+  const p=tafPlan(ex), st=program.settings, c=cycle(); let sets=p.sets;
+  if(st.deload&&sets) sets=Math.max(1,Math.ceil(sets/2));
+  const res={load:0,sets,reps:null,text:"",stall:false,last:h[0]||null};
+  const nm=ex.taf==="fbf"?"barra":"flexão";
+  if(!sets){res.text=`Nas 2 semanas antes do TAF, o manual reduz barra e flexão para 2 vezes por semana: hoje não tem ${nm}.`;return res}
+  res.text=`Manual de TFM, ${c.wk?"semana "+p.w+" do ciclo":"base até o ciclo começar"}: ${p.range} séries de máximas repetições, intervalo de ${p.rest>=120?p.rest/60+" min":p.rest+" s"}. Aqui são ${sets}, para somar bem com a musculação. ${p.real?"Vá ao máximo real, como na prova.":"Pare 1 repetição antes da falha (RPE 9)."}`;
+  if(h[0]){const tot=h[0].sets.reduce((a,s)=>a+s.reps,0),best=Math.max(...h[0].sets.map(s=>s.reps));res.reps=best;res.text+=` Última vez: ${best} na melhor série, ${tot} no total. Tente superar.`}
+  res.text+=" Digite as repetições feitas antes de marcar a série.";
+  return res;
+}
 function suggest(ex){
   const st=program.settings, h=historyFor(ex.id).filter(x=>!x.deload);
+  if(ex.cat==="taf") return tafSuggest(ex,h);
   const res={load:ex.load,sets:eff(ex),reps:ex.rmax,text:"",stall:false,last:h[0]||null};
   if(st.deload){
     if(st.level==="iniciante"){res.load=ex.load?roundTo(ex.load*0.9,ex.inc||1):ex.load;res.text="Deload (iniciante): carga −10%, mesmas séries e repetições. Depois volte à carga anterior.";}
@@ -441,14 +502,14 @@ function suggest(ex){
 const VOL_PHASES=["acum","hr","hip"];
 const MAX_EXTRA=2;
 function capFor(level){return level==="avançado"?20:level==="intermediário"?17:14}
-function eff(ex){return ex.sets+(ex.extra||0)}
+function eff(ex){if(ex.cat==="taf")return tafPlan(ex).sets;return ex.sets+(ex.extra||0)}
 function recentAdd(ex,days){return !!ex.extraAt && (Date.now()-new Date(ex.extraAt))<days*864e5}
 // Chamada ao concluir um treino: soma 1 série onde o livro manda aumentar o volume
 function autoSets(s){
   const st=program.settings; if(st.autoSets===false||s.deload) return [];
   const added=[], volPhase=VOL_PHASES.includes(st.phase), cap=capFor(st.level);
   for(const e of s.ex){
-    const ex=findEx(e.exId); if(!ex||ex.cat==="core"||ex.cat==="prep"||ex.unit==="s") continue;
+    const ex=findEx(e.exId); if(!ex||ex.cat==="core"||ex.cat==="prep"||ex.cat==="taf"||ex.unit==="s") continue;
     if((ex.extra||0)>=MAX_EXTRA || recentAdd(ex,6)) continue;
     const work=e.sets.filter(x=>x.done&&x.kind==="work"&&x.reps>0);
     if(work.length<eff(ex)) continue;                                   // não completou as séries atuais
@@ -514,13 +575,15 @@ function analysis(){
 
 /* ================= Imagens e mapa muscular ================= */
 // Fotos: Free Exercise DB (domínio público, Unlicense)
-const IMG_KEYS=["elev-lat-polia","supino-reto","supino-decl","abd-decl","cruc-polia","abd-pernas","elev-lat-front","tri-tras","remada-baixa","remada-t","cruc-inv","face-pull","rosca-alt","rosca-martelo","prancha","agach-sumo","stiff","leg-press","extensora","flexora","flexora-sent","pant-sent","pant-uni","rot-ext","desenv","puxada-aberta","elev-lat","scott","tri-corda"];
-const IMG_NAMES={"elev-lat-polia":"Elevação lateral na polia","supino-reto":"Supino reto","supino-decl":"Supino declinado","abd-decl":"Abdominal declinado","cruc-polia":"Crucifixo na polia","abd-pernas":"Elevação de pernas","elev-lat-front":"Elevação lateral e frontal","tri-tras":"Tríceps por trás (polia)","remada-baixa":"Remada baixa","remada-t":"Remada T","cruc-inv":"Crucifixo inverso","face-pull":"Face pull","rosca-alt":"Rosca alternada","rosca-martelo":"Rosca martelo","prancha":"Prancha","agach-sumo":"Agachamento sumô","stiff":"Stiff","leg-press":"Leg press","extensora":"Cadeira extensora","flexora":"Mesa flexora","flexora-sent":"Cadeira flexora","pant-sent":"Panturrilha sentado","pant-uni":"Panturrilha em pé","rot-ext":"Rotação externa","desenv":"Desenvolvimento com halteres","puxada-aberta":"Barra fixa","elev-lat":"Elevação lateral","scott":"Rosca Scott","tri-corda":"Tríceps corda"};
+const IMG_KEYS=["flexao","elev-lat-polia","supino-reto","supino-decl","abd-decl","cruc-polia","abd-pernas","elev-lat-front","tri-tras","remada-baixa","remada-t","cruc-inv","face-pull","rosca-alt","rosca-martelo","prancha","agach-sumo","stiff","leg-press","extensora","flexora","flexora-sent","pant-sent","pant-uni","rot-ext","desenv","puxada-aberta","elev-lat","scott","tri-corda"];
+const IMG_NAMES={"flexao":"Flexão de braços","elev-lat-polia":"Elevação lateral na polia","supino-reto":"Supino reto","supino-decl":"Supino declinado","abd-decl":"Abdominal declinado","cruc-polia":"Crucifixo na polia","abd-pernas":"Elevação de pernas","elev-lat-front":"Elevação lateral e frontal","tri-tras":"Tríceps por trás (polia)","remada-baixa":"Remada baixa","remada-t":"Remada T","cruc-inv":"Crucifixo inverso","face-pull":"Face pull","rosca-alt":"Rosca alternada","rosca-martelo":"Rosca martelo","prancha":"Prancha","agach-sumo":"Agachamento sumô","stiff":"Stiff","leg-press":"Leg press","extensora":"Cadeira extensora","flexora":"Mesa flexora","flexora-sent":"Cadeira flexora","pant-sent":"Panturrilha sentado","pant-uni":"Panturrilha em pé","rot-ext":"Rotação externa","desenv":"Desenvolvimento com halteres","puxada-aberta":"Barra fixa","elev-lat":"Elevação lateral","scott":"Rosca Scott","tri-corda":"Tríceps corda"};
 const IMG_STATIC=new Set(["prancha"]);
 function imgKey(ex){
   if(!ex) return null;
   if(ex.img==="none") return null;
   if(ex.img&&IMG_KEYS.includes(ex.img)) return ex.img;
+  if(ex.taf==="fbf") return "puxada-aberta";
+  if(ex.taf==="fb") return "flexao";
   if(IMG_KEYS.includes(ex.id)) return ex.id;
   if(/^prancha/.test(ex.id)) return "prancha";
   return null;
@@ -596,6 +659,248 @@ function warmPlan(ex,w){
   return {sets:[[.5,10,"Aquec."]],n:"1 série leve (músculo já aquecido)",red:true};
 }
 
+/* ================= Corrida e TAF (manual de TFM, EB70-MC-10.375) ================= */
+// Quadro 6-1 (corrida contínua: [metros, minutos] por semana) e Quadro 6-2 (TIAI: [segundos por 400 m, repetições por semana])
+const TFM={"q61":{"1200":[[1600,18.5],[1800,20.5],[2000,23.0],[2200,25.5],[2300,26.5],[2400,27.5],[2200,24.5],[2000,22.0],[1900,20.0],[1600,16.5]],"1300":[[1700,18.0],[1900,20.0],[2000,21.0],[2200,23.5],[2400,25.5],[2600,27.5],[2400,25.0],[2200,22.0],[2100,20.5],[1700,16.0]],"1400":[[1800,17.5],[2000,19.5],[2200,21.5],[2400,23.5],[2600,25.5],[2800,27.5],[2600,25.0],[2400,22.5],[2200,20.0],[1800,16.0]],"1500":[[1900,17.5],[2100,19.5],[2300,21.0],[2500,23.0],[2700,25.0],[3000,27.5],[2700,24.0],[2500,22.0],[2300,19.5],[1900,15.5]],"1600":[[2100,18.0],[2300,20.0],[2500,21.5],[2700,23.5],[2900,25.0],[3200,27.5],[2900,24.5],[2700,22.0],[2500,20.0],[2100,16.0]],"1700":[[2200,18.0],[2400,19.5],[2600,21.0],[2800,22.5],[3000,24.5],[3300,27.0],[3000,23.5],[2800,21.5],[2600,19.5],[2200,16.0]],"1800":[[2300,17.5],[2500,19.0],[2700,20.5],[2900,22.0],[3200,24.5],[3500,27.0],[3200,24.0],[2900,21.0],[2700,19.0],[2300,16.0]],"1900":[[2500,18.0],[2700,19.5],[2900,21.0],[3100,22.5],[3400,24.5],[3700,27.0],[3400,24.0],[3100,21.5],[2900,19.5],[2500,16.5]],"2000":[[2600,18.0],[2800,19.5],[3000,20.5],[3300,23.0],[3600,25.0],[4000,27.5],[3600,24.0],[3300,21.5],[3000,19.0],[2600,16.0]],"2100":[[2700,17.5],[3000,19.5],[3300,21.5],[3600,23.5],[3900,25.5],[4100,27.0],[3900,25.0],[3600,22.5],[3300,20.0],[2700,16.0]],"2200":[[2900,18.0],[3200,20.0],[3500,22.0],[3800,24.0],[4200,26.5],[4600,29.0],[4200,25.5],[3800,22.5],[3500,20.0],[2900,16.5]],"2300":[[3000,18.0],[3300,20.0],[3600,21.5],[3900,23.5],[4300,26.0],[4700,28.0],[4300,25.0],[3900,22.0],[3600,20.0],[3000,16.0]],"2400":[[3100,18.0],[3400,19.5],[3700,21.5],[4000,23.0],[4400,25.5],[4800,27.5],[4400,24.5],[4000,22.0],[3700,19.5],[3100,16.0]],"2500":[[3300,18.0],[3600,20.0],[3900,22.0],[4200,23.5],[4600,25.5],[5000,27.5],[4600,24.5],[4200,22.0],[3900,20.0],[3300,16.5]],"2600":[[3400,18.0],[3700,19.5],[4100,22.0],[4400,23.5],[4800,25.5],[5200,27.5],[4800,25.0],[4400,22.0],[4100,20.0],[3400,16.0]],"2700":[[3500,18.0],[3800,19.5],[4200,21.5],[4500,23.0],[4900,25.0],[5400,27.5],[4900,24.5],[4500,22.0],[4200,20.0],[3500,16.0]],"2800":[[3600,17.5],[3900,19.0],[4300,21.0],[4600,22.5],[5000,24.5],[5500,27.0],[5000,24.0],[4600,21.5],[4300,19.5],[3600,16.0]],"2900":[[3800,18.0],[4100,19.5],[4400,21.0],[4800,23.0],[5200,25.0],[5700,27.0],[5200,24.0],[4800,21.5],[4400,19.5],[3800,16.0]],"3000":[[3900,18.0],[4300,20.0],[4700,22.0],[5000,23.5],[5500,25.5],[6000,27.5],[5500,24.5],[5000,22.0],[4700,20.0],[3900,16.0]],"3100":[[4000,18.0],[4400,20.0],[4800,21.5],[5300,24.0],[5800,26.0],[6300,28.0],[5800,25.0],[5300,22.5],[4800,19.5],[4000,16.0]],"3200":[[4200,18.0],[4600,20.0],[5000,22.0],[5500,24.0],[6000,26.0],[6400,27.5],[6000,25.0],[5500,22.5],[5000,20.0],[4200,16.0]],"3300":[[4300,18.0],[4700,20.0],[5200,22.0],[5700,24.0],[6200,26.0],[6700,28.0],[6200,25.5],[5700,22.5],[5200,20.0],[4300,16.0]],"3400":[[4400,18.0],[4800,19.5],[5300,21.5],[5800,23.5],[6300,25.5],[6800,27.5],[6300,25.0],[5800,22.5],[5300,20.0],[4400,16.0]],"3500":[[4600,18.0],[5000,19.5],[5500,21.5],[6000,23.5],[6600,26.0],[7000,27.5],[6600,25.5],[6200,23.0],[5800,21.0],[4600,16.0]]},"q62":{"1600":[160,[4,4,5,5,6,6,5,5,5,5]],"1700":[152,[4,4,5,5,6,6,5,5,5,5]],"1800":[144,[4,4,5,6,7,7,6,6,6,6]],"1900":[137,[5,5,6,6,7,7,6,6,6,6]],"2000":[131,[5,5,6,7,8,8,7,7,7,7]],"2100":[125,[5,5,6,7,8,8,7,7,7,7]],"2200":[120,[5,5,6,7,8,8,7,7,7,7]],"2300":[115,[5,5,6,7,8,8,7,7,7,7]],"2400":[111,[6,6,7,8,9,9,8,8,8,8]],"2500":[107,[6,6,7,8,9,9,8,8,8,8]],"2600":[103,[6,6,7,8,9,9,8,8,8,8]],"2700":[100,[6,6,7,8,9,9,8,8,8,8]],"2800":[96,[7,7,8,9,10,10,9,9,9,9]],"2900":[93,[7,7,8,9,10,10,9,9,9,9]],"3000":[90,[7,7,8,9,10,10,9,9,9,9]],"3100":[87,[7,7,8,9,10,10,9,9,9,9]],"3200":[85,[8,8,9,10,11,11,10,10,10,10]],"3300":[82,[8,8,9,10,11,11,10,10,10,10]],"3400":[80,[9,9,10,11,12,12,11,11,11,11]],"3500":[78,[9,9,10,11,12,12,11,11,11,11]]}};
+// Quadro 7-3: [séries usadas (mínimo da faixa), intervalo em s] por semana do ciclo
+const FBF_PLAN=[null,[2,180],[2,180],[3,180],[3,180],[3,180],[3,180],[3,180],[3,180],[3,60],[3,60],[2,120],[2,180]];
+const FBF_RANGE=[null,"2 a 3","2 a 3","3 a 4","3 a 4","3 a 5","3 a 5","3 a 5","3 a 5","3 a 4","3 a 4","2 a 3","2"];
+const FB_PLAN=[null,[3,180],[3,180],[3,180],[3,180],[4,180],[4,180],[4,180],[4,180],[3,60],[3,60],[2,120],[2,180]];
+const FB_RANGE=[null,"3 a 4","3 a 4","3 a 4","3 a 4","4 a 5","4 a 5","4 a 5","4 a 5","3 a 4","3 a 4","2 a 3","2"];
+const RUNK={cc:{n:"Corrida contínua",s:"Contínua"},tiai:{n:"Intervalado (TIAI)",s:"Intervalado"},cv:{n:"Fartlek (corrida variada)",s:"Fartlek"},leve:{n:"Trote leve",s:"Trote leve"}};
+const HARD=new Set(["tiai","cv"]);
+const CYCLE_NAMES={sem:"Sem TAF definido",trans:"Transição (base)",vol:"Fase de volume",ritmo:"Fase de ritmo",pre:"Pré-TAF",taf:"Semana do TAF",pos:"TAF realizado"};
+const PSE_TXT={0:"Nada",1:"Muito fraco",2:"Fraco",3:"Moderado",4:"Moderado",5:"Forte",6:"Forte",7:"Muito forte",8:"Muito forte",9:"Muito forte",10:"Máximo"};
+function rc(){if(!program.run)program.run=clone(SEED.run);return program.run}
+function dLocal(s){const [y,m,d]=String(s).split("-").map(Number);return new Date(y,(m||1)-1,d||1)}
+function mondayOf(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function fmtD(d){return d.toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"})}
+function ageNow(){const r=rc();if(!r.birth)return null;const b=dLocal(r.birth),n=new Date();let a=n.getFullYear()-b.getFullYear();if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))a--;return a}
+function fcMax(){const a=ageNow();return a==null?null:Math.round(208-0.7*a)}            // Tanaka (item 5.2.2.8)
+function karv(p){const r=rc(),m=fcMax();if(!m||!r.fcRep)return null;return Math.round((m-r.fcRep)*p+r.fcRep)} // Karvonen (5.2.2.9)
+function cycle(d){
+  d=d||new Date(); const r=rc(); if(!r.tafDate) return {kind:"sem",wk:null,lw:1};
+  const t=mondayOf(dLocal(r.tafDate)), m=mondayOf(d), weeksTo=Math.round((t-m)/(7*864e5)), wk=12-weeksTo;
+  const start=new Date(t); start.setDate(start.getDate()-77);
+  if(weeksTo<0) return {kind:"pos",wk:null,lw:10,start,taf:t,weeksTo};
+  if(wk<1) return {kind:"trans",wk:null,lw:1,start,taf:t,weeksTo};
+  if(wk<=10) return {kind:wk<=6?"vol":"ritmo",wk,lw:wk,start,taf:t,weeksTo};
+  return {kind:wk===11?"pre":"taf",wk,lw:10,start,taf:t,weeksTo};
+}
+function rowOf(tab,T,lo,hi){return tab[Math.max(lo,Math.min(hi,Math.floor(T/100)*100))]}
+function paceStr(s){s=Math.round(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")+"/km"}
+function kmTxt(m){return (Math.round(m/100)/10).toString().replace(".",",")}
+function minTxt(sec){const m=Math.floor(sec/60),s=Math.round(sec%60);return s?`${m}min${String(s).padStart(2,"0")}s`:`${m} min`}
+function presc(kind,c){
+  c=c||cycle(); const T=rc().test12||2400, w=c.lw;
+  const cc=rowOf(TFM.q61,T,1200,3500)[w-1], ccM=cc[0], ccSec=cc[1]*60, ccPace=ccSec/(ccM/1000);
+  const testPace=720/(T/1000), easy=ccPace+35;
+  const q=rowOf(TFM.q62,T,1600,3500); let tDist=400, tSec=Math.round(720*400/(T+200)), reps=q[1][w-1];
+  if(T<=2000){tDist=200;tSec=Math.round(tSec/2);reps*=2}                        // item 6.4.2.2
+  const rest=w<=6?90:w<=8?75:60, tPace=tSec/(tDist/1000);
+  const WARM={lab:"Aquecimento: trote leve e exercícios em movimento",sec:360,pace:easy,k:"warm"};
+  const COOL={lab:"Volta à calma: reduza até caminhar e alongue",sec:300,pace:null,k:"cool"};
+  const fcCC=karv(.7)&&`${karv(.7)}–${karv(.8)} bpm (70–80% da FC de reserva)`;
+  let segs=[],sum="",fc=null,dist=0;
+  if(kind==="cc"){
+    segs=[WARM,{lab:`Corrida contínua: ${kmTxt(ccM)} km`,sec:ccSec,pace:ccPace,k:"run"},COOL];
+    sum=`${kmTxt(ccM)} km em ${minTxt(ccSec)} · ${paceStr(ccPace)}`; fc=fcCC;
+  }else if(kind==="tiai"){
+    segs=[Object.assign({},WARM,{sec:480})];
+    for(let i=1;i<=reps;i++){segs.push({lab:`Tiro ${i} de ${reps}: ${tDist} m em ${minTxt(tSec)}`,sec:tSec,pace:tPace,k:"fast"});
+      if(i<reps)segs.push({lab:"Recuperação: trote lento ou caminhada, sem parar",sec:rest,pace:null,k:"rec"})}
+    segs.push(COOL);
+    sum=`${reps} × ${tDist} m em ${minTxt(tSec)} (${paceStr(tPace)}) · intervalo de ${rest} s`;
+    const f70=fcMax()&&Math.round(fcMax()*.7); fc=f70?`ao fim de cada intervalo, abaixo de ${f70} bpm (70% da FC máx)`:null;
+  }else if(kind==="cv"){
+    segs=[WARM];
+    if(c.kind==="pre"||c.kind==="taf"){
+      for(let i=1;i<=4;i++){segs.push({lab:`Bloco ${i} de 4: ritmo do TAF`,sec:60,pace:testPace,k:"fast"},{lab:"Trote leve",sec:120,pace:easy,k:"rec"})}
+    }else if(c.kind==="ritmo"){
+      const n=Math.max(3,Math.round((ccSec/60-3)/4));
+      for(let i=1;i<=n;i++){segs.push({lab:`Bloco ${i} de ${n}: ritmo do teste de 12 min`,sec:120,pace:testPace,k:"fast"},{lab:"Trote leve",sec:120,pace:easy,k:"rec"});
+        if(i===Math.ceil(n/2))for(let j=1;j<=2;j++)segs.push({lab:`Subida forte ${j} de 2 (ladeira ou escada)`,sec:30,pace:null,k:"fast"},{lab:"Descida caminhando",sec:60,pace:null,k:"rec"})}
+    }else{
+      const n=Math.max(2,Math.round((ccSec/60-4)/7));
+      for(let i=1;i<=n;i++){segs.push({lab:`Bloco ${i} de ${n}: ritmo da contínua`,sec:180,pace:ccPace,k:"run"},{lab:`Bloco ${i} de ${n}: ritmo do intervalado`,sec:120,pace:tPace,k:"fast"},{lab:"Trote leve",sec:120,pace:easy,k:"rec"});
+        if(i===1)for(let j=1;j<=3;j++)segs.push({lab:`Tiro curto ${j} de 3: quase o máximo`,sec:20,pace:null,k:"fast"},{lab:"Caminhada lenta",sec:60,pace:null,k:"rec"})}
+    }
+    segs.push(COOL);
+    const main=segs.filter(s=>s.k!=="warm"&&s.k!=="cool").reduce((a,s)=>a+s.sec,0);
+    sum=`${minTxt(main)} alternando ritmos (${c.kind==="ritmo"?"foco no ritmo do teste":c.kind==="pre"||c.kind==="taf"?"ajuste do ritmo do TAF":"foco em volume"})`;
+  }else{
+    segs=[{lab:"Trote leve e solto",sec:1080,pace:easy+15,k:"run"},COOL];
+    sum=`15 a 20 min em ritmo leve (${paceStr(easy+15)})`;
+  }
+  dist=segs.reduce((a,s)=>a+(s.pace?s.sec/s.pace*1000:s.k==="fast"?s.sec*5:s.k==="rec"?s.sec*1.6:0),0);
+  return {kind,segs,sum,fc,ccPace,ccM,ccSec,tPace,tSec,tDist,reps,rest,testPace,distKm:Math.round(dist/100)/10,c};
+}
+function weekQueue(c){
+  c=c||cycle(); const third=rc().third==="cc"?"cc":"cv";
+  if(c.kind==="taf"||c.kind==="pos") return [{k:"leve",opt:true}];
+  if(c.kind==="pre") return [{k:"cc"},{k:"tiai"},{k:"leve",opt:true}];
+  return [{k:"tiai"},{k:"cc"},{k:third,swap:true},{k:"cc",opt:true}];
+}
+function runsThisWeek(){const m=mondayOf(new Date());return runs.filter(r=>new Date(r.date)>=m).sort((a,b)=>a.date.localeCompare(b.date))}
+function queueState(){
+  const q=weekQueue().map(x=>Object.assign({done:null},x));
+  for(const r of runsThisWeek()){const it=q.find(x=>!x.done&&x.k===r.kind)||q.find(x=>!x.done&&!x.opt)||q.find(x=>!x.done);
+    if(it)it.done=r;else q.push({k:r.kind,done:r,extra:true})}
+  return q;
+}
+function sameDay(iso,d0){const d=new Date(iso);return d>=d0&&d<new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()+1)}
+function hardWarn(kind){
+  if(!HARD.has(kind))return "";
+  const n=new Date(),t0=new Date(n.getFullYear(),n.getMonth(),n.getDate()),y0=new Date(n.getFullYear(),n.getMonth(),n.getDate()-1);
+  if(runs.some(r=>HARD.has(r.kind)&&(sameDay(r.date,y0)||sameDay(r.date,t0))))return "Você fez intervalado ou fartlek ontem ou hoje. Deixe pelo menos 1 dia entre os dois: hoje, prefira a contínua.";
+  const legW=new Set(program.workouts.filter(w=>w.exercises.some(e=>(e.prim||[]).some(m=>["quad","isq","glut"].includes(m)))).map(w=>w.id));
+  if(sessions.some(s=>legW.has(s.wid)&&sameDay(s.date,y0)))return "Ontem foi dia de perna. Intervalado e fartlek rendem mais com as pernas descansadas: se der, faça a contínua hoje.";
+  return "";
+}
+function runLine(r){
+  const pace=r.distKm&&r.durSec?paceStr(r.durSec/r.distKm):"";
+  return [new Date(r.date).toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit"}),r.distKm?kg(r.distKm)+" km":"",r.durSec?minTxt(r.durSec):"",pace,r.tiros?r.tiros+" tiros":"",r.pse!=null?"PSE "+kg(r.pse):"",r.fc?r.fc+" bpm":""].filter(Boolean).join(" · ");
+}
+function segTable(p){
+  return `<ul class="exlist">${p.segs.map(s=>`<li><span class="small">${esc(s.lab)}</span><span class="small num muted" style="text-align:right">${minTxt(s.sec)}${s.pace?"<br>"+paceStr(s.pace):""}</span></li>`).join("")}</ul>`;
+}
+function viewCorrida(){
+  const r=rc(),c=cycle(),q=queueState(),next=q.find(x=>!x.done&&!x.opt)||q.find(x=>!x.done);
+  let h=`<section class="view">`;
+  h+=`<div class="card"><div class="row between wrap"><div><div class="label">Ciclo do TAF</div><h2 style="font-size:26px">${esc(CYCLE_NAMES[c.kind])}${c.wk?` · semana ${c.wk} de 12`:""}</h2></div><button class="btn sm" data-act="runcfg">Ajustes</button></div>
+    <p class="small" style="margin:6px 0 8px">${c.taf?`TAF em ${fmtD(c.taf)}${r.tafProv?" (data provisória: atualize quando sair)":""}. `:"Informe a data do próximo TAF em Ajustes. "}${c.kind==="trans"?`O ciclo de 12 semanas do manual começa em ${fmtD(c.start)}; até lá, a carga é a da semana 1.`:c.kind==="vol"?"Semanas 1 a 6: a distância aumenta, ritmo moderado.":c.kind==="ritmo"?"Semanas 7 a 10: o ritmo sobe e a distância diminui.":c.kind==="pre"?"Semana mais leve antes do TAF: menos corridas, mesmos ritmos.":c.kind==="taf"?"Só trote leve até 2 dias antes. Depois, registre o resultado.":c.kind==="pos"?"Registre o resultado do TAF e a data do próximo para começar o novo ciclo.":""}</p>
+    <div class="row wrap tiny"><span class="chip">Teste 12 min: ${r.test12} m (${paceStr(720/(r.test12/1000))})</span>${fcMax()?`<span class="chip">FC máx ${fcMax()} bpm</span>`:`<span class="chip acc">Informe a data de nascimento em Ajustes</span>`}${r.fcRep?`<span class="chip">FC repouso ${r.fcRep}</span>`:""}</div>
+    <div class="row wrap" style="margin-top:10px"><button class="btn sm" data-act="tafreg">Registrar TAF</button></div></div>`;
+  if(next){
+    const p=presc(next.k,c),warn=hardWarn(next.k);
+    h+=`<div class="card next"><div class="label">Próxima corrida</div><h2>${esc(RUNK[next.k].n)}</h2>
+      <p class="small" style="margin:6px 0">${esc(p.sum)}</p>${p.fc?`<p class="tiny muted" style="margin:0 0 6px">FC alvo: ${esc(p.fc)}</p>`:""}
+      ${warn?`<div class="sugg stall small">${esc(warn)}</div>`:""}
+      <div class="row wrap" style="margin-top:10px"><button class="btn primary" data-act="runstart" data-k="${next.k}">Iniciar roteiro</button><button class="btn" data-act="runlog" data-k="${next.k}">Só registrar</button>${next.swap?`<button class="btn ghost sm" data-act="third">Trocar por ${r.third==="cc"?"fartlek":"contínua"}</button>`:""}</div></div>`;
+  }else h+=`<div class="card next"><div class="label">Semana</div><h2>Corridas da semana completas</h2><p class="small muted">Se correr mais, registre abaixo.</p></div>`;
+  h+=`<div class="card"><h2 style="font-size:22px;margin-bottom:8px">Corridas desta semana</h2><ul class="exlist">${q.map((x,i)=>`<li><span>${x.done?"✓ ":""}<strong>${esc(RUNK[x.k].s)}</strong>${x.opt?' <span class="tiny muted">opcional</span>':""}${x.extra?' <span class="tiny muted">extra</span>':""}<br><span class="tiny muted">${x.done?esc(runLine(x.done)):"a fazer"}</span></span><span>${x.done?"":`<button class="btn sm" data-act="runstart" data-k="${x.k}">Iniciar</button>`}</span></li>`).join("")}</ul>
+    <p class="tiny muted" style="margin:8px 0 0">Sem dia fixo: a semana vai de segunda a domingo e cada corrida registrada marca a próxima da lista.</p></div>`;
+  h+=`<div class="card"><h2 style="font-size:22px;margin-bottom:6px">Roteiros desta semana</h2>${["tiai","cc","cv","leve"].map(k=>{const p=presc(k,c);return `<details style="border-top:1px solid var(--line);padding:8px 0"><summary class="row between"><span><strong>${esc(RUNK[k].n)}</strong><br><span class="tiny muted">${esc(p.sum)}</span></span><span class="muted">▾</span></summary>${segTable(p)}<div class="row wrap"><button class="btn sm primary" data-act="runstart" data-k="${k}">Iniciar</button><button class="btn sm" data-act="runlog" data-k="${k}">Registrar</button></div></details>`}).join("")}</div>`;
+  const last=runs.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,25);
+  h+=`<div class="card"><div class="row between"><h2 style="font-size:22px">Histórico de corridas</h2><button class="btn sm" data-act="runlog" data-k="cc">+ Registrar</button></div>${last.length?`<ul class="exlist">${last.map(x=>`<li><span><strong class="small">${esc(RUNK[x.kind]?.s||x.kind)}</strong><br><span class="tiny muted">${esc(runLine(x))}</span>${x.note?`<br><span class="tiny muted">${esc(x.note)}</span>`:""}</span><span><button class="btn sm ghost danger" data-act="delrun" data-id="${esc(x.id)}" aria-label="Excluir corrida">✕</button></span></li>`).join("")}</ul>`:`<p class="small muted">Nenhuma corrida registrada ainda.</p>`}</div>`;
+  h+=`<div class="card"><h2 style="font-size:22px;margin-bottom:6px">Resultados do TAF</h2>${(r.tafs||[]).length?`<ul class="exlist">${r.tafs.slice().reverse().map(t=>`<li><span class="small"><strong>${fmtD(dLocal(t.date))}</strong><br><span class="tiny muted">${[t.dist?t.dist+" m em 12 min":"",t.fb!=null?t.fb+" flexões":"",t.fbf!=null?t.fbf+" barras":"",t.abd!=null?t.abd+" abdominais":""].filter(Boolean).join(" · ")}</span></span><span></span></li>`).join("")}</ul>`:`<p class="small muted">Registre cada TAF: o resultado da corrida passa a ser a base do ciclo seguinte, como manda o manual.</p>`}</div>`;
+  h+=`<p class="tiny muted">Cargas pelo manual EB70-MC-10.375: Quadro 6-1 (contínua), Quadro 6-2 (intervalado), item 6.3 (corrida variada), Quadro 7-3 (barra e flexão), Cap. V (FC e PSE).</p></section>`;
+  return h;
+}
+function openRunCfg(){
+  const r=rc();
+  $("#sheet").innerHTML=`<div class="row between"><h2 style="font-size:24px">Ajustes da corrida</h2><button class="btn sm ghost" data-act="closem">Fechar</button></div>
+    <div class="grid2"><div class="field"><label for="rcT">Teste de 12 min (metros)</label><input id="rcT" inputmode="numeric" value="${r.test12||""}"></div>
+    <div class="field"><label for="rcD">Data do próximo TAF</label><input id="rcD" type="date" value="${r.tafDate||""}"></div></div>
+    <label class="row small"><input type="checkbox" id="rcP" ${r.tafProv?"checked":""}> Data provisória</label>
+    <div class="grid2"><div class="field"><label for="rcB">Data de nascimento</label><input id="rcB" type="date" value="${r.birth||""}"></div>
+    <div class="field"><label for="rcF">FC de repouso (bpm)</label><input id="rcF" inputmode="numeric" value="${r.fcRep||""}"></div></div>
+    <div class="field"><label for="rcX">3ª corrida da semana</label><select id="rcX"><option value="cv" ${r.third!=="cc"?"selected":""}>Fartlek (corrida variada)</option><option value="cc" ${r.third==="cc"?"selected":""}>Corrida contínua</option></select></div>
+    <p class="tiny muted" style="margin:0">A data de nascimento serve só para a FC máxima (fórmula de Tanaka, do manual) e fica salva neste app.</p>
+    <div class="row"><span style="flex:1"></span><button class="btn primary" data-act="saverc">Salvar</button></div>`;
+  $("#modal").classList.add("open");
+}
+let rlPse=null;
+function openRunLog(pref){
+  pref=pref||{}; rlPse=pref.pse??null; const k=pref.kind||"cc";
+  const d=pref.durSec||0;
+  $("#sheet").innerHTML=`<div class="row between"><h2 style="font-size:24px">Registrar corrida</h2><button class="btn sm ghost" data-act="closem">Fechar</button></div>
+    <div class="grid2"><div class="field"><label for="rlK">Tipo</label><select id="rlK">${Object.entries(RUNK).map(([key,v])=>`<option value="${key}" ${key===k?"selected":""}>${v.n}</option>`).join("")}</select></div>
+    <div class="field"><label for="rlD">Data</label><input id="rlD" type="date" value="${ymd(new Date())}"></div></div>
+    <div class="grid3"><div class="field"><label for="rlKm">Distância (km)</label><input id="rlKm" inputmode="decimal" value="${pref.distKm?kg(pref.distKm):""}"></div>
+    <div class="field"><label for="rlM">Tempo: min</label><input id="rlM" inputmode="numeric" value="${d?Math.floor(d/60):""}"></div>
+    <div class="field"><label for="rlS">seg</label><input id="rlS" inputmode="numeric" value="${d?Math.round(d%60):""}"></div></div>
+    <div class="grid3"><div class="field"><label for="rlFc">FC média</label><input id="rlFc" inputmode="numeric" placeholder="opcional"></div>
+    <div class="field"><label for="rlFr">FC fim do intervalo</label><input id="rlFr" inputmode="numeric" placeholder="intervalado"></div>
+    <div class="field"><label for="rlT">Tiros feitos</label><input id="rlT" inputmode="numeric" value="${pref.tiros??""}" placeholder="intervalado"></div></div>
+    <div class="field"><label>Esforço percebido (escala de Borg, 0 a 10)</label><div class="seg" id="pseSeg">${[0,1,2,3,4,5,6,7,8,9,10].map(v=>`<button data-act="pse" data-v="${v}" aria-pressed="${rlPse===v}">${v}</button>`).join("")}</div><div class="tiny muted" id="pseTxt">${rlPse!=null?PSE_TXT[rlPse]:"3 moderado · 5 forte · 7 muito forte · 10 máximo"}</div></div>
+    <div class="field"><label for="rlN">Observações</label><input id="rlN" placeholder="terreno, clima, dores"></div>
+    <div class="row"><span style="flex:1"></span><button class="btn primary" data-act="saverun">Salvar corrida</button></div>`;
+  $("#modal").classList.add("open");
+}
+function runFeedback(r){
+  const p=presc(r.kind),out=[];
+  const pace=r.distKm&&r.durSec?r.durSec/r.distKm:null;
+  if(pace) out.push(`Ritmo médio: ${paceStr(pace)}.`);
+  if(r.kind==="cc"&&pace){
+    if(pace<p.ccPace-12) out.push(`Mais rápido que o previsto para a contínua (${paceStr(p.ccPace)}). A contínua é controlada pelo ritmo e pela FC; forçar aqui tira energia do intervalado.`);
+    else if(pace>p.ccPace+20) out.push(`Mais lento que o previsto (${paceStr(p.ccPace)}). Se foi por cansaço, observe como chega no próximo treino.`);
+    else out.push("Dentro do ritmo previsto.");
+  }
+  if(r.kind==="cc"&&r.fc&&karv(.8)&&r.fc>karv(.8)) out.push(`FC média acima de 80% da reserva (${karv(.8)} bpm): reduza um pouco o ritmo na próxima.`);
+  if(r.kind==="tiai"&&r.fcRec&&fcMax()){
+    if(r.fcRec>fcMax()*.7) out.push(p.rest>=90?"No fim do intervalo a FC ainda estava acima de 70% da máxima. Pelo manual, como o intervalo já é de 90 s, diminua a intensidade dos tiros na próxima.":`No fim do intervalo a FC ainda estava acima de 70% da máxima. Pelo manual, aumente o intervalo na próxima (até 90 s).`);
+    else out.push("Recuperou abaixo de 70% da FC máxima entre os tiros: carga adequada.");
+  }
+  if(r.kind==="tiai"&&r.tiros&&r.tiros<p.reps) out.push(`Você fez ${r.tiros} de ${p.reps} tiros. Se parou por cansaço, mantenha a mesma carga na próxima.`);
+  if(r.pse!=null){
+    if(r.kind==="cc"&&r.pse>=7) out.push("Esforço alto para uma contínua: confira sono, alimentação e o treino anterior.");
+    if(r.kind==="tiai"&&r.pse<=4) out.push("Esforço baixo para o intervalado: confira se está no tempo do tiro.");
+  }
+  return out;
+}
+function openTafReg(){
+  const r=rc();
+  $("#sheet").innerHTML=`<div class="row between"><h2 style="font-size:24px">Registrar TAF</h2><button class="btn sm ghost" data-act="closem">Fechar</button></div>
+    <div class="grid2"><div class="field"><label for="tfD">Data do TAF</label><input id="tfD" type="date" value="${r.tafDate&&dLocal(r.tafDate)<=new Date()?r.tafDate:ymd(new Date())}"></div>
+    <div class="field"><label for="tfC">Corrida 12 min (metros)</label><input id="tfC" inputmode="numeric"></div></div>
+    <div class="grid3"><div class="field"><label for="tfFb">Flexão de braços</label><input id="tfFb" inputmode="numeric"></div>
+    <div class="field"><label for="tfFbf">Barra fixa</label><input id="tfFbf" inputmode="numeric"></div>
+    <div class="field"><label for="tfA">Abdominal</label><input id="tfA" inputmode="numeric"></div></div>
+    <div class="field"><label for="tfN">Data do próximo TAF (se já souber)</label><input id="tfN" type="date"></div>
+    <p class="tiny muted" style="margin:0">A distância da corrida passa a ser a base do próximo ciclo (Quadros 6-1 e 6-2).</p>
+    <div class="row"><span style="flex:1"></span><button class="btn primary" data-act="savetaf">Salvar</button></div>`;
+  $("#modal").classList.add("open");
+}
+/* ---------- Roteiro cronometrado ---------- */
+let runner=null;
+function startRun(kind){
+  if(runner) return;
+  const p=presc(kind); unlockAudio();
+  runner={kind,p,segs:p.segs,i:0,start:Date.now(),paused:false,left:0,ticks:{},fastDone:0,iv:null};
+  runner.segEnd=Date.now()+runner.segs[0].sec*1000;
+  $("#runner").classList.add("open"); keepAwake(true); renderRunner();
+  runner.iv=setInterval(runTick,200); runTick();
+}
+function renderRunner(){
+  if(!runner) return;
+  const s=runner.segs[runner.i], nx=runner.segs[runner.i+1];
+  $("#runnerInner").innerHTML=`<div class="s-head"><div><div class="label">${esc(RUNK[runner.kind].n)} · <span class="num">${runner.i+1}/${runner.segs.length}</span></div><h2>Roteiro</h2></div>
+    <div class="row"><button class="btn sm danger ghost" data-act="runstop">Encerrar</button></div></div>
+    <div class="runbox ${s.k}"><div class="label">${s.k==="fast"?"Forte":s.k==="rec"?"Recuperação":s.k==="warm"?"Aquecimento":s.k==="cool"?"Volta à calma":"Ritmo constante"}</div>
+    <div class="rlab">${esc(s.lab)}</div>
+    <div class="rtime num" id="rTime">${fmt(s.sec)}</div>
+    ${s.pace?`<div class="rpace num">Ritmo alvo ${paceStr(s.pace)}</div>`:""}
+    <div class="bar" style="margin-top:12px"><i id="rBar" style="width:0%"></i></div></div>
+    <div class="row wrap" style="justify-content:center;margin:16px 0"><button class="btn" data-act="runpause">${runner.paused?"Continuar":"Pausar"}</button><button class="btn primary" data-act="runnext">${s.k==="fast"?"Terminei o tiro":"Próximo"}</button></div>
+    <div class="card small"><div class="row between"><span class="muted">Tempo total</span><span class="num" id="rEl">0:00</span></div>${nx?`<div class="row between" style="margin-top:6px"><span class="muted">Depois</span><span>${esc(nx.lab)} · ${minTxt(nx.sec)}</span></div>`:""}</div>
+    <p class="tiny muted">Bipes nos 3 últimos segundos e alarme na troca de trecho. Deixe a tela ligada com o app aberto: com o app em segundo plano o celular pausa o cronômetro.</p>`;
+}
+function runTick(){
+  if(!runner||runner.paused) return;
+  const s=runner.segs[runner.i], left=(runner.segEnd-Date.now())/1000, sc=Math.ceil(left);
+  if(left>0&&sc<=3&&!runner.ticks[sc]){runner.ticks[sc]=1;playTick()}
+  if(left<=0){ if(left>-5){playAlarm();vibrate([300,120,300])} nextSeg(); return; }
+  const t=$("#rTime"); if(t) t.textContent=fmt(sc);
+  const b=$("#rBar"); if(b) b.style.width=Math.min(100,(1-left/s.sec)*100)+"%";
+  const e=$("#rEl"); if(e) e.textContent=fmt((Date.now()-runner.start)/1000);
+}
+function nextSeg(){
+  const cur=runner.segs[runner.i]; if(cur&&cur.k==="fast"&&/^Tiro \d/.test(cur.lab)) runner.fastDone++;
+  runner.i++; runner.ticks={};
+  if(runner.i>=runner.segs.length){ endRun(); return; }
+  runner.segEnd=Date.now()+runner.segs[runner.i].sec*1000; renderRunner();
+}
+function endRun(){
+  if(!runner) return;
+  clearInterval(runner.iv); const r=runner; runner=null;
+  $("#runner").classList.remove("open"); keepAwake(false);
+  const ran=r.segs.slice(0,r.i).filter(s=>s.k!=="warm"&&s.k!=="cool");
+  const done=r.i>=r.segs.length;
+  openRunLog({kind:r.kind,durSec:Math.round((Date.now()-r.start)/1000),distKm:done?r.p.distKm:null,tiros:r.kind==="tiai"?r.fastDone:undefined});
+}
+
 /* ================= Render ================= */
 let tab = lsGet(LS_TAB)||"treinos";
 function render(){
@@ -603,6 +908,7 @@ function render(){
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
   const m=$("#main");
   if(tab==="treinos") m.innerHTML=viewTreinos();
+  if(tab==="corrida") m.innerHTML=viewCorrida();
   if(tab==="volume") m.innerHTML=viewVolume();
   if(tab==="plano") m.innerHTML=viewPlano();
   if(tab==="historico"){m.innerHTML=viewHist();drawChart();}
@@ -626,6 +932,7 @@ function viewTreinos(){
   const nx=nextWorkout(); const st=program.settings;
   const weekCount=sessions.filter(s=>Date.now()-new Date(s.date)<7*864e5).length;
   let h=`<section class="view">`;
+  {const c=cycle(); if(c.kind==="taf"&&!st.deload) h+=`<div class="card"><div class="label">Semana do TAF</div><p class="small" style="margin:4px 0 10px">Para chegar descansado na prova, vale ativar a semana de deload da musculação.</p><button class="btn sm primary" data-act="deload">Ativar deload</button></div>`;}
   if(live){
     const w=program.workouts.find(w=>w.id===live.wid);
     h+=`<div class="card next"><div class="label">Em andamento</div><h2>Treino ${esc(live.wid)} · ${esc(w?w.name:"")}</h2><div class="row" style="margin-top:10px"><button class="btn primary" data-act="resume">Continuar treino</button></div></div>`;
@@ -755,7 +1062,7 @@ function startSession(wid){
     const sg=suggest(ex); const sets=[];
     if(!program.settings.deload && sg.load>0) for(const [pct,r,lab] of warmPlan(ex,w).sets) sets.push({kind:"warm",label:lab,kg:roundTo(sg.load*pct,ex.inc>=2?2:1),reps:r,rpe:null,done:false});
     for(let i=0;i<sg.sets;i++) sets.push({kind:"work",label:i===0?"Top":"S"+(i+1),kg:sg.load||null,reps:null,rpe:null,done:false,target:sg.reps});
-    return {exId:ex.id,name:ex.name,cat:ex.cat,unit:ex.unit,sets,sugg:sg.text,stall:sg.stall,last:sg.last?sg.last.sets.map(s=>(s.kg?kg(s.kg)+"×":"")+s.reps+(s.rpe!=null?"@"+kg(s.rpe):"")).join(" · "):null,lastDate:sg.last?sg.last.date:null,target:`${sg.sets}×${repsTxt(ex)}`,rpe:targetRpe(ex)};
+    return {exId:ex.id,name:ex.name,cat:ex.cat,unit:ex.unit,sets,sugg:sg.text,stall:sg.stall,last:sg.last?sg.last.sets.map(s=>(s.kg?kg(s.kg)+"×":"")+s.reps+(s.rpe!=null?"@"+kg(s.rpe):"")).join(" · "):null,lastDate:sg.last?sg.last.date:null,target:`${sg.sets}×${repsTxt(ex)}`,rpe:targetRpe(ex),rest:ex.cat==="taf"?tafPlan(ex).rest:null};
   })};
   lsSet(LS_LIVE,live); renderSession(); $("#session").classList.add("open"); $("#session").scrollTop=0; keepAwake(true);
 }
@@ -919,13 +1226,13 @@ document.addEventListener("click",async ev=>{
   if(a==="chk"){
     const e=live.ex[+b.dataset.e], s=e.sets[+b.dataset.s];
     s.done=!s.done;
-    if(s.done&&s.kind==="work"&&s.reps==null&&s.target) s.reps=s.target;
+    if(s.done&&s.kind==="work"&&s.reps==null&&s.target&&e.cat!=="taf") s.reps=s.target;
     if(s.done&&s.kind==="work"&&s.rpe==null&&e.rpe) s.rpe=e.rpe;
     lsSet(LS_LIVE,live); renderSession();
     if(s.done){
       const workIdx=e.sets.filter(x=>x.kind==="work").indexOf(s);
-      const sec=s.kind==="warm"?60:restFor(s.reps||s.target||8,workIdx,e.unit);
-      startTimer(sec, s.kind==="warm"?"Aquecimento: descanso curto":`Descanso ${restLabel(sec)} (${s.reps||""} reps)`);
+      const sec=s.kind==="warm"?60:e.rest?e.rest:restFor(s.reps||s.target||8,workIdx,e.unit);
+      startTimer(sec, s.kind==="warm"?"Aquecimento: descanso curto":e.rest?`Descanso ${fmt(sec)} (manual de TFM)`:`Descanso ${restLabel(sec)} (${s.reps||""} reps)`);
     }
   }
   if(a==="addset"){const e=live.ex[+b.dataset.e];const w=e.sets.filter(s=>s.kind==="work");const l=w[w.length-1]||{};e.sets.push({kind:"work",label:"S"+(w.length+1),kg:l.kg??null,reps:null,rpe:null,done:false,target:l.target});lsSet(LS_LIVE,live);renderSession()}
@@ -936,6 +1243,39 @@ document.addEventListener("click",async ev=>{
   if(a==="testsnd"){unlockAudio();playAlarm();vibrate([300,120,300])}
   if(a==="level"){st.level=b.dataset.v;saveProgram();render()}
   if(a==="deload"){const was=st.deload;st.deload=!st.deload;if(was&&resetExtras())toast("Deload encerrado: séries extras voltaram ao número base.");saveProgram();render()}
+  if(a==="runstart"){ startRun(b.dataset.k); }
+  if(a==="runlog"){ openRunLog({kind:b.dataset.k}); }
+  if(a==="runpause"&&runner){ if(runner.paused){runner.segEnd=Date.now()+runner.left*1000;runner.paused=false}else{runner.left=(runner.segEnd-Date.now())/1000;runner.paused=true} renderRunner(); runTick(); }
+  if(a==="runnext"&&runner){ nextSeg(); }
+  if(a==="runstop"&&runner){ endRun(); }
+  if(a==="third"){ const r=rc(); r.third=r.third==="cc"?"cv":"cc"; saveProgram(); render(); }
+  if(a==="runcfg") openRunCfg();
+  if(a==="saverc"){
+    const r=rc(), T=parseInt($("#rcT").value); if(T>=800&&T<=5000) r.test12=T;
+    r.tafDate=$("#rcD").value||r.tafDate; r.tafProv=$("#rcP").checked; r.birth=$("#rcB").value||r.birth;
+    const f=parseInt($("#rcF").value); r.fcRep=f>=30&&f<=110?f:r.fcRep; r.third=$("#rcX").value;
+    saveProgram(); $("#modal").classList.remove("open"); render(); toast("Ajustes salvos.");
+  }
+  if(a==="pse"){ rlPse=+b.dataset.v; document.querySelectorAll("#pseSeg button").forEach(x=>x.setAttribute("aria-pressed",String(+x.dataset.v===rlPse))); $("#pseTxt").textContent=PSE_TXT[rlPse]; }
+  if(a==="saverun"){
+    const d=$("#rlD").value||ymd(new Date()), now=new Date(), dt=dLocal(d); dt.setHours(now.getHours(),now.getMinutes(),now.getSeconds());
+    const km=parseNum($("#rlKm").value), mi=parseInt($("#rlM").value)||0, se=parseInt($("#rlS").value)||0, n=v=>{const x=parseInt(v);return isNaN(x)?null:x};
+    const r={id:"r"+Date.now(),date:dt.toISOString(),kind:$("#rlK").value,distKm:km,durSec:mi*60+se||null,fc:n($("#rlFc").value),fcRec:n($("#rlFr").value),tiros:n($("#rlT").value),pse:rlPse,note:$("#rlN").value.trim(),wk:cycle(dt).wk||null};
+    if(!r.distKm&&!r.durSec){toast("Informe a distância ou o tempo.");return}
+    await saveRun(r); render(); const fb=runFeedback(r);
+    openInfo("Corrida salva", fb.length?fb.join(" "):"Registro salvo.");
+  }
+  if(a==="delrun") openConfirm("Excluir esta corrida do histórico?",async()=>{await deleteRun(b.dataset.id);render()});
+  if(a==="tafreg") openTafReg();
+  if(a==="savetaf"){
+    const r=rc(), n=v=>{const x=parseInt(v);return isNaN(x)?null:x};
+    const t={date:$("#tfD").value||ymd(new Date()),dist:n($("#tfC").value),fb:n($("#tfFb").value),fbf:n($("#tfFbf").value),abd:n($("#tfA").value)};
+    r.tafs=[...(r.tafs||[]),t].sort((x,y)=>x.date.localeCompare(y.date));
+    if(t.dist&&t.dist>=800) r.test12=t.dist;
+    const nx=$("#tfN").value; if(nx){r.tafDate=nx;r.tafProv=false}
+    saveProgram(); $("#modal").classList.remove("open"); render();
+    openInfo("TAF registrado", (t.dist?`O próximo ciclo usa ${t.dist} m como base. `:"")+(nx?"":"Quando souber a data do próximo TAF, informe em Corrida → Ajustes."));
+  }
   if(a==="warmsmart"){st.warmSmart=st.warmSmart===false;saveProgram();render()}
   if(a==="autosets"){st.autoSets=st.autoSets===false;saveProgram();render()}
   if(a==="phase"){if(st.phase!==b.dataset.v){st.phase=b.dataset.v;st.week=1;if(resetExtras())toast("Nova fase: séries extras voltaram ao número base.")}saveProgram();render()}
@@ -953,18 +1293,18 @@ document.addEventListener("click",async ev=>{
   if(a==="savew"){readEditorFields();const i=program.workouts.findIndex(w=>w.id===editing.id);program.workouts[i]=editing;saveProgram();$("#modal").classList.remove("open");editing=null;render();toast("Treino atualizado.")}
   if(a==="delw"){const id=editing.id;openConfirm(`Excluir o treino ${id}? O histórico fica guardado.`,()=>{program.workouts=program.workouts.filter(w=>w.id!==id);saveProgram();editing=null;render()})}
   if(a==="export"){
-    const txt=JSON.stringify({program,sessions});
+    const txt=JSON.stringify({program,sessions,runs});
     try{await navigator.clipboard.writeText(txt);toast("Backup copiado. Cole num lugar seguro.")}
     catch(e){openText("Copie este texto e guarde:",txt,false)}
   }
   if(a==="download"){
-    const blob=new Blob([JSON.stringify({program,sessions})],{type:"application/json"});
+    const blob=new Blob([JSON.stringify({program,sessions,runs})],{type:"application/json"});
     const url=URL.createObjectURL(blob);const l=document.createElement("a");l.href=url;l.download="treino-natural-backup-"+new Date().toISOString().slice(0,10)+".json";document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
   }
   if(a==="pickfile") $("#bkFile").click();
   if(a==="import") openText("Cole aqui o backup copiado antes:","",true);
   if(a==="doimport"){
-    try{const d=JSON.parse($("#ioText").value);if(!d.program||!d.program.workouts)throw 0;program=d.program;saveProgram();for(const s of (d.sessions||[]))await saveSession(s);$("#modal").classList.remove("open");render();toast("Backup restaurado.")}
+    try{const d=JSON.parse($("#ioText").value);if(!d.program||!d.program.workouts)throw 0;program=d.program;saveProgram();for(const s of (d.sessions||[]))await saveSession(s);for(const r of (d.runs||[]))await saveRun(r);$("#modal").classList.remove("open");render();toast("Backup restaurado.")}
     catch(e){toast("Esse texto não é um backup válido deste app.")}
   }
   if(a==="reset") openConfirm("Substituir seus treinos pelo programa inicial? O histórico continua.",()=>{program=clone(SEED);saveProgram();render()});
