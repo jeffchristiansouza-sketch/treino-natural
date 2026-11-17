@@ -565,11 +565,27 @@ function openExInfo(id){
       ${s?`<div><div class="label">Secundários</div>${esc(s)}</div>`:""}
       ${!p&&!s?`<div class="muted">Preparatório: não conta volume.</div>`:""}
       <div><div class="label">Tipo</div>${esc(c.n||"")}</div>
-      <div><div class="label">Plano</div><span class="num">${eff(ex)}×${repsTxt(ex)}</span>${targetRpe(ex)?` · RPE ${kg(targetRpe(ex))}`:""}<br><span class="muted">${esc(WARM[ex.warm]?.n||"")}</span></div>
+      <div><div class="label">Plano</div><span class="num">${eff(ex)}×${repsTxt(ex)}</span>${targetRpe(ex)?` · RPE ${kg(targetRpe(ex))}`:""}<br><span class="muted">${esc(warmPlan(ex).n||"")}</span></div>
     </div></div>
     ${ex.note?`<p class="small muted" style="margin:0">${esc(ex.note)}</p>`:""}
     ${imgKey(ex)?`<p class="tiny muted" style="margin:0">Foto: Free Exercise DB (domínio público). A foto mostra o movimento; o equipamento da sua academia pode ser diferente.</p>`:""}`;
   $("#modal").classList.add("open");
+}
+
+/* ================= Aquecimento inteligente ================= */
+// Se todos os músculos primários do exercício já foram trabalhados antes no mesmo treino,
+// o músculo já está aquecido: só feeders nos multiarticulares livres, 1 série leve nos demais.
+function workoutOf(exId){return program.workouts.find(w=>w.exercises.some(e=>e.id===exId))||null}
+function warmPlan(ex,w){
+  const base=WARM[ex.warm]||WARM["0"];
+  const plain={sets:base.s,n:base.n,red:false};
+  if(program.settings.warmSmart===false||ex.warm==="0"||!(ex.prim||[]).length) return plain;
+  w=w||workoutOf(ex.id); if(!w) return plain;
+  const idx=w.exercises.findIndex(e=>e.id===ex.id), done=new Set();
+  w.exercises.slice(0,Math.max(0,idx)).forEach(e=>{if(e.cat!=="prep"&&e.cat!=="core")(e.prim||[]).forEach(m=>done.add(m))});
+  if(!ex.prim.every(m=>done.has(m))) return plain;
+  if(ex.warm==="full") return {sets:[[.6,6,"Feeder"],[.75,4,"Feeder"]],n:"2 feeders (músculo já aquecido)",red:true};
+  return {sets:[[.5,10,"Aquec."]],n:"1 série leve (músculo já aquecido)",red:true};
 }
 
 /* ================= Render ================= */
@@ -621,7 +637,7 @@ function viewTreinos(){
       <div style="padding:0 14px 14px"><ul class="exlist">`;
     for(const ex of w.exercises){
       const sg=suggest(ex);
-      h+=`<li class="withimg" data-act="exinfo" data-id="${esc(ex.id)}" role="button" tabindex="0">${animHtml(ex,"th")}<span>${esc(ex.name)}<br><span class="tiny muted">${esc(CATS[ex.cat]?.n||"")}${ex.warm!=="0"?" · "+WARM[ex.warm].n:""}</span></span>
+      h+=`<li class="withimg" data-act="exinfo" data-id="${esc(ex.id)}" role="button" tabindex="0">${animHtml(ex,"th")}<span>${esc(ex.name)}<br><span class="tiny muted">${esc(CATS[ex.cat]?.n||"")}${ex.warm!=="0"?" · "+warmPlan(ex,w).n:""}</span></span>
         <span class="num small" style="text-align:right">${ex.extra?`<span class="chip acc" title="Séries somadas automaticamente">+${ex.extra}</span> `:""}${eff(ex)}×${repsTxt(ex)}${sg.load?"<br><span class='muted'>"+kg(sg.load)+" kg</span>":""}</span></li>`;
     }
     h+=`</ul><div class="row wrap" style="margin-top:10px"><button class="btn sm primary" data-act="start" data-w="${esc(w.id)}" ${live?"disabled":""}>Iniciar</button><button class="btn sm" data-act="editw" data-w="${esc(w.id)}">Editar</button></div></div></details>`;
@@ -652,6 +668,9 @@ function viewPlano(){
     <p class="tiny muted" style="margin:6px 0 0">Muda o deload: iniciante reduz 10% da carga; intermediário e avançado reduzem 50% do volume.</p></div>
     <div class="card"><div class="row between"><div><div class="label">Semana de deload</div><div class="small muted">Use ao travar por 2 semanas seguidas.</div></div>
     <button class="btn ${st.deload?"primary":""}" data-act="deload" aria-pressed="${st.deload}">${st.deload?"Ativo":"Ativar"}</button></div></div>
+    <div class="card"><div class="row between"><div><div class="label">Aquecimento inteligente</div><div class="small muted">Menos aquecimento quando o músculo já trabalhou no mesmo treino.</div></div>
+    <button class="btn ${st.warmSmart!==false?"primary":""}" data-act="warmsmart" aria-pressed="${st.warmSmart!==false}">${st.warmSmart!==false?"Ligado":"Desligado"}</button></div>
+    <p class="tiny muted" style="margin:8px 0 0">Quando todos os músculos primários de um exercício já foram trabalhados antes no treino (ex.: Rosca Martelo depois da Rosca Alternada), o aquecimento vira 1 série leve (50% × 10). Nos multiarticulares livres ficam só os 2 feeders. O primeiro exercício de cada músculo mantém o aquecimento completo.</p></div>
     <div class="card"><div class="row between"><div><div class="label">Séries automáticas</div><div class="small muted">Soma 1 série quando o livro manda aumentar o volume.</div></div>
     <button class="btn ${st.autoSets!==false?"primary":""}" data-act="autosets" aria-pressed="${st.autoSets!==false}">${st.autoSets!==false?"Ligado":"Desligado"}</button></div>
     <p class="tiny muted" style="margin:8px 0 0">${VOL_PHASES.includes(st.phase)?"Nesta fase de volume: +1 série por semana em cada exercício que você completou sem passar do RPE alvo.":"Nesta fase: +1 série só quando o exercício trava 2 sessões seguidas, mas você completou todas as séries sem passar do RPE alvo (sinal de que está se recuperando bem). Se passou do RPE, o app sugere deload."} Limites: no máximo +${MAX_EXTRA} séries por exercício, 1 por semana, e até ${capFor(st.level)} séries por grupo muscular na semana (nível ${st.level}). As séries extras voltam a zero ao terminar um deload ou trocar de fase, como no livro.${(()=>{const n=program.workouts.reduce((a,w)=>a+w.exercises.filter(e=>e.extra).length,0);return n?` Hoje há ${n} exercício(s) com séries extras.`:""})()}</p></div>
@@ -726,7 +745,7 @@ function startSession(wid){
   const w=program.workouts.find(w=>w.id===wid); if(!w) return;
   live={id:"s"+Date.now(),wid:w.id,wname:w.name,start:Date.now(),deload:program.settings.deload,phase:program.settings.phase,note:"",ex:w.exercises.map(ex=>{
     const sg=suggest(ex); const sets=[];
-    if(!program.settings.deload && sg.load>0) for(const [pct,r,lab] of WARM[ex.warm].s) sets.push({kind:"warm",label:lab,kg:roundTo(sg.load*pct,ex.inc>=2?2:1),reps:r,rpe:null,done:false});
+    if(!program.settings.deload && sg.load>0) for(const [pct,r,lab] of warmPlan(ex,w).sets) sets.push({kind:"warm",label:lab,kg:roundTo(sg.load*pct,ex.inc>=2?2:1),reps:r,rpe:null,done:false});
     for(let i=0;i<sg.sets;i++) sets.push({kind:"work",label:i===0?"Top":"S"+(i+1),kg:sg.load||null,reps:null,rpe:null,done:false,target:sg.reps});
     return {exId:ex.id,name:ex.name,cat:ex.cat,unit:ex.unit,sets,sugg:sg.text,stall:sg.stall,last:sg.last?sg.last.sets.map(s=>(s.kg?kg(s.kg)+"×":"")+s.reps+(s.rpe!=null?"@"+kg(s.rpe):"")).join(" · "):null,lastDate:sg.last?sg.last.date:null,target:`${sg.sets}×${repsTxt(ex)}`,rpe:targetRpe(ex)};
   })};
@@ -909,6 +928,7 @@ document.addEventListener("click",async ev=>{
   if(a==="testsnd"){unlockAudio();playAlarm();vibrate([300,120,300])}
   if(a==="level"){st.level=b.dataset.v;saveProgram();render()}
   if(a==="deload"){const was=st.deload;st.deload=!st.deload;if(was&&resetExtras())toast("Deload encerrado: séries extras voltaram ao número base.");saveProgram();render()}
+  if(a==="warmsmart"){st.warmSmart=st.warmSmart===false;saveProgram();render()}
   if(a==="autosets"){st.autoSets=st.autoSets===false;saveProgram();render()}
   if(a==="phase"){if(st.phase!==b.dataset.v){st.phase=b.dataset.v;st.week=1;if(resetExtras())toast("Nova fase: séries extras voltaram ao número base.")}saveProgram();render()}
   if(a==="wk"){st.week=Math.max(1,Math.min(16,st.week+(+b.dataset.d)));saveProgram();render()}
