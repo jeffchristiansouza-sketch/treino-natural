@@ -185,6 +185,12 @@ details summary::-webkit-details-marker{display:none}
 .runbox .rlab{font-family:var(--display);font-size:24px;line-height:1.15;margin-top:6px;text-wrap:balance}
 .runbox .rtime{font-family:var(--display);font-weight:700;font-size:84px;line-height:1;margin-top:10px}
 .runbox .rpace{color:var(--accent);font-size:18px;margin-top:4px}
+.watch{display:grid;gap:8px}
+.wstep{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:start;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px;line-height:1.35}
+.wstep .wn{font-family:var(--display);font-size:20px;color:var(--accent);line-height:1.1}
+.wstep .wt{color:var(--accent)}
+.wrep{display:grid;gap:6px;border-left:3px solid var(--accent);padding-left:8px}
+.wrep .wstep:first-child{background:none;border:0;padding:4px 0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -268,8 +274,8 @@ function restLabel(sec){
 /* ================= Programa inicial (das suas telas) ================= */
 function E(id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,extra){return Object.assign({id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,unit:"reps",rpe:null,note:""},extra||{})}
 const SEED = {
-  v:5,
-  run:{test12:2900,testNote:"3,11 km em 12min51s, convertido para 12 min",tafDate:"2027-04-05",tafProv:true,birth:"",fcRep:52,third:"cv",tafs:[]},
+  v:6,
+  run:{test12:2900,testNote:"3,11 km em 12min51s, convertido para 12 min",tafDate:"2027-04-05",tafProv:true,birth:"",fcRep:52,third:"cc",tafs:[]},
   settings:{level:"iniciante",phase:"livre",week:1,deload:false,ackFreq:true},
   workouts:[
     {id:"A",name:"Empurrar",sub:"Peito · Ombros · Tríceps · Abdômen",exercises:[
@@ -352,6 +358,7 @@ function migrate(p){
     if(!p.run) p.run=clone(SEED.run);
     p.v=5; migrated=true;
   }
+  if(p.v===5){ if(p.run) p.run.third="cc"; p.v=6; migrated=true; }  // fartlek vira a 4ª corrida, opcional
   return p;
 }
 let migrated=false;
@@ -691,7 +698,7 @@ function cycle(d){
 function rowOf(tab,T,lo,hi){return tab[Math.max(lo,Math.min(hi,Math.floor(T/100)*100))]}
 function paceStr(s){s=Math.round(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")+"/km"}
 function kmTxt(m){return (Math.round(m/100)/10).toString().replace(".",",")}
-function minTxt(sec){const m=Math.floor(sec/60),s=Math.round(sec%60);return s?`${m}min${String(s).padStart(2,"0")}s`:`${m} min`}
+function minTxt(sec){if(sec<60)return Math.round(sec)+" s";const m=Math.floor(sec/60),s=Math.round(sec%60);return s?`${m}min${String(s).padStart(2,"0")}s`:`${m} min`}
 function presc(kind,c){
   c=c||cycle(); const T=rc().test12||2400, w=c.lw;
   const cc=rowOf(TFM.q61,T,1200,3500)[w-1], ccM=cc[0], ccSec=cc[1]*60, ccPace=ccSec/(ccM/1000);
@@ -737,10 +744,10 @@ function presc(kind,c){
   return {kind,segs,sum,fc,ccPace,ccM,ccSec,tPace,tSec,tDist,reps,rest,testPace,distKm:Math.round(dist/100)/10,c};
 }
 function weekQueue(c){
-  c=c||cycle(); const third=rc().third==="cc"?"cc":"cv";
+  c=c||cycle(); const third=rc().third==="cv"?"cv":"cc", fourth=third==="cv"?"cc":"cv";
   if(c.kind==="taf"||c.kind==="pos") return [{k:"leve",opt:true}];
   if(c.kind==="pre") return [{k:"cc"},{k:"tiai"},{k:"leve",opt:true}];
-  return [{k:"tiai"},{k:"cc"},{k:third,swap:true},{k:"cc",opt:true}];
+  return [{k:"tiai"},{k:"cc"},{k:third,swap:true},{k:fourth,opt:true}];
 }
 function runsThisWeek(){const m=mondayOf(new Date());return runs.filter(r=>new Date(r.date)>=m).sort((a,b)=>a.date.localeCompare(b.date))}
 function queueState(){
@@ -777,11 +784,11 @@ function viewCorrida(){
     h+=`<div class="card next"><div class="label">Próxima corrida</div><h2>${esc(RUNK[next.k].n)}</h2>
       <p class="small" style="margin:6px 0">${esc(p.sum)}</p>${p.fc?`<p class="tiny muted" style="margin:0 0 6px">FC alvo: ${esc(p.fc)}</p>`:""}
       ${warn?`<div class="sugg stall small">${esc(warn)}</div>`:""}
-      <div class="row wrap" style="margin-top:10px"><button class="btn primary" data-act="runstart" data-k="${next.k}">Iniciar roteiro</button><button class="btn" data-act="runlog" data-k="${next.k}">Só registrar</button>${next.swap?`<button class="btn ghost sm" data-act="third">Trocar por ${r.third==="cc"?"fartlek":"contínua"}</button>`:""}</div></div>`;
+      <div class="row wrap" style="margin-top:10px"><button class="btn primary" data-act="watch" data-k="${next.k}">Ver para o relógio</button><button class="btn" data-act="runstart" data-k="${next.k}">Roteiro no celular</button><button class="btn" data-act="runlog" data-k="${next.k}">Registrar</button>${next.swap?`<button class="btn ghost sm" data-act="third">Trocar por ${r.third==="cv"?"contínua":"fartlek"}</button>`:""}</div></div>`;
   }else h+=`<div class="card next"><div class="label">Semana</div><h2>Corridas da semana completas</h2><p class="small muted">Se correr mais, registre abaixo.</p></div>`;
-  h+=`<div class="card"><h2 style="font-size:22px;margin-bottom:8px">Corridas desta semana</h2><ul class="exlist">${q.map((x,i)=>`<li><span>${x.done?"✓ ":""}<strong>${esc(RUNK[x.k].s)}</strong>${x.opt?' <span class="tiny muted">opcional</span>':""}${x.extra?' <span class="tiny muted">extra</span>':""}<br><span class="tiny muted">${x.done?esc(runLine(x.done)):"a fazer"}</span></span><span>${x.done?"":`<button class="btn sm" data-act="runstart" data-k="${x.k}">Iniciar</button>`}</span></li>`).join("")}</ul>
+  h+=`<div class="card"><h2 style="font-size:22px;margin-bottom:8px">Corridas desta semana</h2><ul class="exlist">${q.map((x,i)=>`<li><span>${x.done?"✓ ":""}<strong>${esc(RUNK[x.k].s)}</strong>${x.opt?' <span class="tiny muted">opcional</span>':""}${x.extra?' <span class="tiny muted">extra</span>':""}<br><span class="tiny muted">${x.done?esc(runLine(x.done)):"a fazer"}</span></span><span>${x.done?"":`<button class="btn sm" data-act="watch" data-k="${x.k}">Ver</button>`}</span></li>`).join("")}</ul>
     <p class="tiny muted" style="margin:8px 0 0">Sem dia fixo: a semana vai de segunda a domingo e cada corrida registrada marca a próxima da lista.</p></div>`;
-  h+=`<div class="card"><h2 style="font-size:22px;margin-bottom:6px">Roteiros desta semana</h2>${["tiai","cc","cv","leve"].map(k=>{const p=presc(k,c);return `<details style="border-top:1px solid var(--line);padding:8px 0"><summary class="row between"><span><strong>${esc(RUNK[k].n)}</strong><br><span class="tiny muted">${esc(p.sum)}</span></span><span class="muted">▾</span></summary>${segTable(p)}<div class="row wrap"><button class="btn sm primary" data-act="runstart" data-k="${k}">Iniciar</button><button class="btn sm" data-act="runlog" data-k="${k}">Registrar</button></div></details>`}).join("")}</div>`;
+  h+=`<div class="card"><h2 style="font-size:22px;margin-bottom:6px">Roteiros desta semana</h2>${["tiai","cc","cv","leve"].map(k=>{const p=presc(k,c);return `<details style="border-top:1px solid var(--line);padding:8px 0"><summary class="row between"><span><strong>${esc(RUNK[k].n)}</strong><br><span class="tiny muted">${esc(p.sum)}</span></span><span class="muted">▾</span></summary><div class="watch" style="margin:8px 0">${watchHtml(p)}</div><div class="row wrap"><button class="btn sm primary" data-act="watch" data-k="${k}">Ver para o relógio</button><button class="btn sm" data-act="runstart" data-k="${k}">Roteiro no celular</button><button class="btn sm" data-act="runlog" data-k="${k}">Registrar</button></div></details>`}).join("")}</div>`;
   const last=runs.slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,25);
   h+=`<div class="card"><div class="row between"><h2 style="font-size:22px">Histórico de corridas</h2><button class="btn sm" data-act="runlog" data-k="cc">+ Registrar</button></div>${last.length?`<ul class="exlist">${last.map(x=>`<li><span><strong class="small">${esc(RUNK[x.kind]?.s||x.kind)}</strong><br><span class="tiny muted">${esc(runLine(x))}</span>${x.note?`<br><span class="tiny muted">${esc(x.note)}</span>`:""}</span><span><button class="btn sm ghost danger" data-act="delrun" data-id="${esc(x.id)}" aria-label="Excluir corrida">✕</button></span></li>`).join("")}</ul>`:`<p class="small muted">Nenhuma corrida registrada ainda.</p>`}</div>`;
   h+=`<div class="card"><h2 style="font-size:22px;margin-bottom:6px">Resultados do TAF</h2>${(r.tafs||[]).length?`<ul class="exlist">${r.tafs.slice().reverse().map(t=>`<li><span class="small"><strong>${fmtD(dLocal(t.date))}</strong><br><span class="tiny muted">${[t.dist?t.dist+" m em 12 min":"",t.fb!=null?t.fb+" flexões":"",t.fbf!=null?t.fbf+" barras":"",t.abd!=null?t.abd+" abdominais":""].filter(Boolean).join(" · ")}</span></span><span></span></li>`).join("")}</ul>`:`<p class="small muted">Registre cada TAF: o resultado da corrida passa a ser a base do ciclo seguinte, como manda o manual.</p>`}</div>`;
@@ -796,7 +803,7 @@ function openRunCfg(){
     <label class="row small"><input type="checkbox" id="rcP" ${r.tafProv?"checked":""}> Data provisória</label>
     <div class="grid2"><div class="field"><label for="rcB">Data de nascimento</label><input id="rcB" type="date" value="${r.birth||""}"></div>
     <div class="field"><label for="rcF">FC de repouso (bpm)</label><input id="rcF" inputmode="numeric" value="${r.fcRep||""}"></div></div>
-    <div class="field"><label for="rcX">3ª corrida da semana</label><select id="rcX"><option value="cv" ${r.third!=="cc"?"selected":""}>Fartlek (corrida variada)</option><option value="cc" ${r.third==="cc"?"selected":""}>Corrida contínua</option></select></div>
+    <div class="field"><label for="rcX">3ª corrida da semana</label><select id="rcX"><option value="cc" ${r.third!=="cv"?"selected":""}>Corrida contínua (fartlek fica como 4ª, opcional)</option><option value="cv" ${r.third==="cv"?"selected":""}>Fartlek (contínua fica como 4ª, opcional)</option></select></div>
     <p class="tiny muted" style="margin:0">A data de nascimento serve só para a FC máxima (fórmula de Tanaka, do manual) e fica salva neste app.</p>
     <div class="row"><span style="flex:1"></span><button class="btn primary" data-act="saverc">Salvar</button></div>`;
   $("#modal").classList.add("open");
@@ -851,6 +858,64 @@ function openTafReg(){
     <div class="field"><label for="tfN">Data do próximo TAF (se já souber)</label><input id="tfN" type="date"></div>
     <p class="tiny muted" style="margin:0">A distância da corrida passa a ser a base do próximo ciclo (Quadros 6-1 e 6-2).</p>
     <div class="row"><span style="flex:1"></span><button class="btn primary" data-act="savetaf">Salvar</button></div>`;
+  $("#modal").classList.add("open");
+}
+/* ---------- Treino para o relógio ---------- */
+// Converte o roteiro em etapas no formato dos treinos estruturados dos relógios (Garmin, Apple, Coros, Polar etc.)
+function paceRange(p,lo,hi){return `${paceStr(p+lo).replace("/km","")}–${paceStr(p+hi)}`}
+function watchSteps(p){
+  const st=p.segs.map(s=>{
+    const type=s.k==="warm"?"Aquecimento":s.k==="cool"?"Desaquecimento":s.k==="rec"?"Recuperar":"Correr";
+    let dur=minTxt(s.sec), target="", extra="";
+    if(p.kind==="tiai"&&s.k==="fast"){dur=`${p.tDist} m`;target=paceRange(s.pace,-5,5);extra=`${minTxt(s.sec)} por tiro`}
+    else if(p.kind==="cc"&&s.k==="run"){dur=`${kmTxt(p.ccM)} km`;target=paceRange(s.pace,-5,5);extra=`cerca de ${minTxt(s.sec)}`}
+    else if(s.pace){target=s.k==="warm"||s.k==="rec"?paceRange(s.pace,-10,15):paceRange(s.pace,-5,5)}
+    else if(s.k==="fast") target=/Subida/.test(s.lab)?"forte, em subida":"quase o máximo";
+    else if(s.k==="rec") target=/trote lento ou caminhada/.test(s.lab)?"trote lento ou caminhada, sem parar":/aminh/.test(s.lab)?"caminhada":"trote leve";
+    else if(s.k==="cool") target="caminhada e alongamento";
+    return {type,dur,target,extra};
+  });
+  const key=s=>s.type+"|"+s.dur+"|"+s.target;
+  const out=[];let i=0;
+  while(i<st.length){
+    let best=null;
+    for(let L=1;L<=4;L++){
+      let k=1; while(i+(k+1)*L<=st.length&&st.slice(i+k*L,i+(k+1)*L).every((x,j)=>key(x)===key(st[i+j])))k++;
+      // último tiro sem recuperação depois: conta como mais uma repetição
+      let tail=0; if(k>1&&L>1&&st.slice(i+k*L,i+k*L+L-1).length===L-1&&st.slice(i+k*L,i+k*L+L-1).every((x,j)=>key(x)===key(st[i+j])))tail=L-1;
+      if(k>1&&(!best||k*L+tail>best.cover))best={L,k:k+(tail?1:0),cover:k*L+tail};
+    }
+    if(best){out.push({rep:best.k,steps:st.slice(i,i+best.L),skipLast:best.cover<best.k*best.L});i+=best.cover}
+    else{out.push(st[i]);i++}
+  }
+  return out;
+}
+function watchHtml(p){
+  let n=0;
+  const one=(s,pre)=>`<div class="wstep"><span class="wn">${pre}</span><div><strong>${esc(s.type)}</strong> · <span class="num">${esc(s.dur)}</span>${s.target?`<br><span class="wt num">${esc(s.target)}</span>`:""}${s.extra?` <span class="tiny muted">(${esc(s.extra)})</span>`:""}</div></div>`;
+  return watchSteps(p).map(x=>{n++;
+    if(x.rep) return `<div class="wrep"><div class="wstep"><span class="wn">${n}</span><div><strong>Repetir ${x.rep}×</strong>${x.skipLast?' <span class="tiny muted">(na última, pule a recuperação)</span>':""}</div></div>${x.steps.map((s,j)=>one(s,String.fromCharCode(97+j))).join("")}</div>`;
+    return one(x,n);
+  }).join("");
+}
+function watchText(p){
+  let n=0;const L=[`${RUNK[p.kind].n} — ${p.sum}`];
+  const one=(s,pre,ind)=>`${ind}${pre}. ${s.type} · ${s.dur}${s.target?" · "+s.target:""}${s.extra?" ("+s.extra+")":""}`;
+  for(const x of watchSteps(p)){n++;
+    if(x.rep){L.push(`${n}. Repetir ${x.rep}×${x.skipLast?" (na última, pule a recuperação)":""}`);x.steps.forEach((s,j)=>L.push(one(s,String.fromCharCode(97+j),"   ")))}
+    else L.push(one(x,n,""));
+  }
+  return L.join("\n");
+}
+let watchKind=null;
+function openWatch(kind){
+  watchKind=kind; const p=presc(kind), c=p.c;
+  $("#sheet").innerHTML=`<div class="row between"><h2 style="font-size:24px">${esc(RUNK[kind].n)}</h2><button class="btn sm ghost" data-act="closem">Fechar</button></div>
+    <p class="small muted" style="margin:0">${esc(p.sum)} · ${esc(CYCLE_NAMES[c.kind])}${c.wk?`, semana ${c.wk}`:""}</p>
+    <div class="watch">${watchHtml(p)}</div>
+    ${p.fc?`<p class="tiny muted" style="margin:0">FC: ${esc(p.fc)}</p>`:""}
+    <p class="tiny muted" style="margin:0">Monte no app do relógio como treino estruturado: cada linha vira uma etapa, com o ritmo como alvo. As faixas têm 5 s/km para cada lado do ritmo do manual.</p>
+    <div class="row"><button class="btn" data-act="watchcopy">Copiar texto</button><span style="flex:1"></span><button class="btn primary" data-act="runlog" data-k="${kind}">Registrar corrida</button></div>`;
   $("#modal").classList.add("open");
 }
 /* ---------- Roteiro cronometrado ---------- */
@@ -1245,10 +1310,12 @@ document.addEventListener("click",async ev=>{
   if(a==="deload"){const was=st.deload;st.deload=!st.deload;if(was&&resetExtras())toast("Deload encerrado: séries extras voltaram ao número base.");saveProgram();render()}
   if(a==="runstart"){ startRun(b.dataset.k); }
   if(a==="runlog"){ openRunLog({kind:b.dataset.k}); }
+  if(a==="watch"){ openWatch(b.dataset.k); }
+  if(a==="watchcopy"&&watchKind){ const t=watchText(presc(watchKind)); try{await navigator.clipboard.writeText(t);toast("Treino copiado.")}catch(e){openText("Copie o treino:",t,false)} }
   if(a==="runpause"&&runner){ if(runner.paused){runner.segEnd=Date.now()+runner.left*1000;runner.paused=false}else{runner.left=(runner.segEnd-Date.now())/1000;runner.paused=true} renderRunner(); runTick(); }
   if(a==="runnext"&&runner){ nextSeg(); }
   if(a==="runstop"&&runner){ endRun(); }
-  if(a==="third"){ const r=rc(); r.third=r.third==="cc"?"cv":"cc"; saveProgram(); render(); }
+  if(a==="third"){ const r=rc(); r.third=r.third==="cv"?"cc":"cv"; saveProgram(); render(); }
   if(a==="runcfg") openRunCfg();
   if(a==="saverc"){
     const r=rc(), T=parseInt($("#rcT").value); if(T>=800&&T<=5000) r.test12=T;
