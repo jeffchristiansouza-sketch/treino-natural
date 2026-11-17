@@ -256,7 +256,7 @@ function restLabel(sec){
 /* ================= Programa inicial (das suas telas) ================= */
 function E(id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,extra){return Object.assign({id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,unit:"reps",rpe:null,note:""},extra||{})}
 const SEED = {
-  v:3,
+  v:4,
   settings:{level:"iniciante",phase:"livre",week:1,deload:false,ackFreq:true},
   workouts:[
     {id:"A",name:"Empurrar",sub:"Peito · Ombros · Tríceps · Abdômen",exercises:[
@@ -291,7 +291,7 @@ const SEED = {
       E("rot-ext","Rotação de Ombros Externa (polia)","prep",3,17,20,5,1,"1",[],[]),
       E("desenv","Desenvolvimento de Ombros Sentado (halteres)","msl",4,8,10,14,2,"full",["deltAnt","deltLat"],["triceps"]),
       E("puxada-aberta","Puxada com Pegada Aberta (barra fixa)","msl",3,6,7,0,0,"full",["costas"],["biceps","deltPost"],{note:"Peso corporal: aqueça com 1–2 séries leves na puxada na polia ou com elástico"}),
-      E("elev-lat","Elevação Lateral (halteres)","as",4,12,15,6,1,"2",["deltLat"],[],{note:"Novo: carga estimada, ajuste na 1ª sessão"}),
+      E("elev-lat-polia","Elevação Lateral (polia)","as",4,12,15,5,2.5,"2",["deltLat"],[],{note:"Carga por braço estimada: ajuste na 1ª sessão. Pode fazer em pé, um braço de cada vez"}),
       E("scott","Rosca Scott pegada fechada (barra)","as",3,8,12,24,2,"2",["biceps"],[],{note:"Reps subiram de 6–10 para 8–12: carga estimada"}),
       E("tri-corda","Extensão de Tríceps com corda (polia)","as",3,9,12,30,2.5,"2",["triceps"],[])
     ]}
@@ -308,9 +308,16 @@ function migrate(p){
       if(!t) t=(e.load>0&&e.cat!=="prep"&&e.cat!=="core")?"2":e.warm;
       if((RANK[t]||0)>(RANK[e.warm]||0)) e.warm=t;
     }));
-    p.v=3; migrated=true; return p;
+    p.v=3; migrated=true;
   }
-  if((p.v||1)>=3) return p;
+  if(p.v===3){
+    // Elevação lateral do Treino D passa a ser na polia (variação diferente da do Treino A)
+    const nw=SEED.workouts.flatMap(w=>w.exercises).find(e=>e.id==="elev-lat-polia");
+    p.workouts.forEach(w=>{const i=w.exercises.findIndex(e=>e.id==="elev-lat");
+      if(i>=0){const o=w.exercises[i],n=clone(nw);n.sets=o.sets;n.warm=o.warm;w.exercises[i]=n}});
+    p.v=4; migrated=true;
+  }
+  return p;
   const old={};p.workouts.forEach(w=>w.exercises.forEach(e=>old[e.id]=e));
   const n=clone(SEED);
   n.settings=Object.assign({},p.settings||{},{ackFreq:true});
@@ -340,6 +347,7 @@ async function initStore(){
   live = lsGet(LS_LIVE);
   try{ if(navigator.storage&&navigator.storage.persist) await navigator.storage.persist(); }catch(e){}
   render();
+  if(migrated) toast("Treino atualizado com as últimas mudanças.");
 }
 let saveTimer=null;
 function saveProgram(){
@@ -506,8 +514,8 @@ function analysis(){
 
 /* ================= Imagens e mapa muscular ================= */
 // Fotos: Free Exercise DB (domínio público, Unlicense)
-const IMG_KEYS=["supino-reto","supino-decl","abd-decl","cruc-polia","abd-pernas","elev-lat-front","tri-tras","remada-baixa","remada-t","cruc-inv","face-pull","rosca-alt","rosca-martelo","prancha","agach-sumo","stiff","leg-press","extensora","flexora","flexora-sent","pant-sent","pant-uni","rot-ext","desenv","puxada-aberta","elev-lat","scott","tri-corda"];
-const IMG_NAMES={"supino-reto":"Supino reto","supino-decl":"Supino declinado","abd-decl":"Abdominal declinado","cruc-polia":"Crucifixo na polia","abd-pernas":"Elevação de pernas","elev-lat-front":"Elevação lateral e frontal","tri-tras":"Tríceps por trás (polia)","remada-baixa":"Remada baixa","remada-t":"Remada T","cruc-inv":"Crucifixo inverso","face-pull":"Face pull","rosca-alt":"Rosca alternada","rosca-martelo":"Rosca martelo","prancha":"Prancha","agach-sumo":"Agachamento sumô","stiff":"Stiff","leg-press":"Leg press","extensora":"Cadeira extensora","flexora":"Mesa flexora","flexora-sent":"Cadeira flexora","pant-sent":"Panturrilha sentado","pant-uni":"Panturrilha em pé","rot-ext":"Rotação externa","desenv":"Desenvolvimento com halteres","puxada-aberta":"Barra fixa","elev-lat":"Elevação lateral","scott":"Rosca Scott","tri-corda":"Tríceps corda"};
+const IMG_KEYS=["elev-lat-polia","supino-reto","supino-decl","abd-decl","cruc-polia","abd-pernas","elev-lat-front","tri-tras","remada-baixa","remada-t","cruc-inv","face-pull","rosca-alt","rosca-martelo","prancha","agach-sumo","stiff","leg-press","extensora","flexora","flexora-sent","pant-sent","pant-uni","rot-ext","desenv","puxada-aberta","elev-lat","scott","tri-corda"];
+const IMG_NAMES={"elev-lat-polia":"Elevação lateral na polia","supino-reto":"Supino reto","supino-decl":"Supino declinado","abd-decl":"Abdominal declinado","cruc-polia":"Crucifixo na polia","abd-pernas":"Elevação de pernas","elev-lat-front":"Elevação lateral e frontal","tri-tras":"Tríceps por trás (polia)","remada-baixa":"Remada baixa","remada-t":"Remada T","cruc-inv":"Crucifixo inverso","face-pull":"Face pull","rosca-alt":"Rosca alternada","rosca-martelo":"Rosca martelo","prancha":"Prancha","agach-sumo":"Agachamento sumô","stiff":"Stiff","leg-press":"Leg press","extensora":"Cadeira extensora","flexora":"Mesa flexora","flexora-sent":"Cadeira flexora","pant-sent":"Panturrilha sentado","pant-uni":"Panturrilha em pé","rot-ext":"Rotação externa","desenv":"Desenvolvimento com halteres","puxada-aberta":"Barra fixa","elev-lat":"Elevação lateral","scott":"Rosca Scott","tri-corda":"Tríceps corda"};
 const IMG_STATIC=new Set(["prancha"]);
 function imgKey(ex){
   if(!ex) return null;
