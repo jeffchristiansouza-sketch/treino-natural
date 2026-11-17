@@ -373,10 +373,10 @@ function historyFor(exId){
 }
 function suggest(ex){
   const st=program.settings, h=historyFor(ex.id).filter(x=>!x.deload);
-  const res={load:ex.load,sets:ex.sets,reps:ex.rmax,text:"",stall:false,last:h[0]||null};
+  const res={load:ex.load,sets:eff(ex),reps:ex.rmax,text:"",stall:false,last:h[0]||null};
   if(st.deload){
     if(st.level==="iniciante"){res.load=ex.load?roundTo(ex.load*0.9,ex.inc||1):ex.load;res.text="Deload (iniciante): carga −10%, mesmas séries e repetições. Depois volte à carga anterior.";}
-    else{res.sets=Math.max(1,Math.ceil(ex.sets/2));res.text="Deload (intermediário): mesma carga, metade das séries.";}
+    else{res.sets=Math.max(1,Math.ceil(eff(ex)/2));res.text="Deload (intermediário): mesma carga, metade das séries.";}
     return res;
   }
   if(!h.length){res.text="Sem registro anterior. Use a carga do plano e anote tudo.";res.reps=ex.rmin;return res;}
@@ -398,7 +398,10 @@ function suggest(ex){
     res.text=overRpe?`Última vez passou do RPE alvo (${tr}). Mantenha ${kg(topKg)} kg e foque em técnica.`
       :`Mantenha ${kg(topKg)} kg e tente ${res.reps} reps na top set (superar a top set é o principal).`;
   }
-  if(res.stall){
+  const justAdded=ex.extra>0&&recentAdd(ex,8);
+  if(justAdded&&res.stall) res.text+=" · Travou, mas está se recuperando bem: +1 série nesta semana, como no fluxograma do livro. Mantenha a carga e busque as reps em todas as séries.";
+  else if(justAdded) res.text+=" · +1 série nesta semana (fase de acúmulo de volume).";
+  else if(res.stall){
     res.text+= st.level==="iniciante"
       ?" · Sem progresso há 2 sessões: o livro sugere deload de −10% na carga por 1 semana."
       :" · Sem progresso há 2 sessões: o livro sugere deload de 50% do volume por 1 semana.";
@@ -406,13 +409,41 @@ function suggest(ex){
   return res;
 }
 
+/* ================= Séries automáticas (fluxograma do livro) ================= */
+const VOL_PHASES=["acum","hr","hip"];
+const MAX_EXTRA=2;
+function capFor(level){return level==="avançado"?20:level==="intermediário"?17:14}
+function eff(ex){return ex.sets+(ex.extra||0)}
+function recentAdd(ex,days){return !!ex.extraAt && (Date.now()-new Date(ex.extraAt))<days*864e5}
+// Chamada ao concluir um treino: soma 1 série onde o livro manda aumentar o volume
+function autoSets(s){
+  const st=program.settings; if(st.autoSets===false||s.deload) return [];
+  const added=[], volPhase=VOL_PHASES.includes(st.phase), cap=capFor(st.level);
+  for(const e of s.ex){
+    const ex=findEx(e.exId); if(!ex||ex.cat==="core"||ex.cat==="prep"||ex.unit==="s") continue;
+    if((ex.extra||0)>=MAX_EXTRA || recentAdd(ex,6)) continue;
+    const work=e.sets.filter(x=>x.done&&x.kind==="work"&&x.reps>0);
+    if(work.length<eff(ex)) continue;                                   // não completou as séries atuais
+    const tr=targetRpe(ex);
+    if(tr!=null && work.some(x=>x.rpe!=null&&x.rpe>tr+0.5)) continue;   // esforço acima do alvo: não está se recuperando bem
+    const h=historyFor(ex.id).filter(x=>!x.deload);
+    const stalled=h.length>=3 && h[0].best<=h[2].best*1.005 && h[1].best<=h[2].best*1.005;
+    if(!volPhase && !stalled) continue;                                 // fora das fases de volume, só quando trava
+    const {v}=weeklyVolume();
+    if((ex.prim||[]).some(m=>!NO_BAND.includes(m)&&v[m]+1>cap) || (ex.sec||[]).some(m=>!NO_BAND.includes(m)&&v[m]+0.5>cap)) continue;
+    ex.extra=(ex.extra||0)+1; ex.extraAt=new Date().toISOString(); added.push(ex.name+" ("+eff(ex)+" séries)");
+  }
+  return added;
+}
+function resetExtras(){let n=0;program.workouts.forEach(w=>w.exercises.forEach(e=>{if(e.extra)n++;e.extra=0;delete e.extraAt}));return n}
+
 /* ================= Análise do programa (regras do livro) ================= */
 function weeklyVolume(){
   const v={};Object.keys(MUSCLES).forEach(k=>v[k]=0);
   const freq={};Object.keys(MUSCLES).forEach(k=>freq[k]=new Set());
   for(const w of program.workouts)for(const ex of w.exercises){
     if(ex.cat==="prep") continue;
-    const sets=program.settings.deload&&program.settings.level!=="iniciante"?Math.ceil(ex.sets/2):ex.sets;
+    const sets=program.settings.deload&&program.settings.level!=="iniciante"?Math.ceil(eff(ex)/2):eff(ex);
     (ex.prim||[]).forEach(m=>{v[m]+=sets;freq[m].add(w.id)});
     (ex.sec||[]).forEach(m=>{v[m]+=sets/2;freq[m].add(w.id)});
   }
@@ -487,7 +518,7 @@ function viewTreinos(){
     const w=program.workouts.find(w=>w.id===live.wid);
     h+=`<div class="card next"><div class="label">Em andamento</div><h2>Treino ${esc(live.wid)} · ${esc(w?w.name:"")}</h2><div class="row" style="margin-top:10px"><button class="btn primary" data-act="resume">Continuar treino</button></div></div>`;
   }else if(nx){
-    const sets=nx.exercises.reduce((a,e)=>a+e.sets,0);
+    const sets=nx.exercises.reduce((a,e)=>a+eff(e),0);
     h+=`<div class="card next"><div class="label">Próximo treino</div><h2>Treino ${esc(nx.id)} · ${esc(nx.name)}</h2>
       <div class="muted small">${esc(nx.sub||"")}</div>
       <div class="row wrap small" style="margin:8px 0 12px"><span class="chip">${nx.exercises.length} exercícios</span><span class="chip">${sets} séries</span><span class="chip">último: ${lastDone(nx.id)}</span>${st.deload?'<span class="chip acc">semana de deload</span>':""}</div>
@@ -503,7 +534,7 @@ function viewTreinos(){
     for(const ex of w.exercises){
       const sg=suggest(ex);
       h+=`<li><span>${esc(ex.name)}<br><span class="tiny muted">${esc(CATS[ex.cat]?.n||"")}${ex.warm!=="0"?" · "+WARM[ex.warm].n:""}</span></span>
-        <span class="num small" style="text-align:right">${ex.sets}×${repsTxt(ex)}${sg.load?"<br><span class='muted'>"+kg(sg.load)+" kg</span>":""}</span></li>`;
+        <span class="num small" style="text-align:right">${ex.extra?`<span class="chip acc" title="Séries somadas automaticamente">+${ex.extra}</span> `:""}${eff(ex)}×${repsTxt(ex)}${sg.load?"<br><span class='muted'>"+kg(sg.load)+" kg</span>":""}</span></li>`;
     }
     h+=`</ul><div class="row wrap" style="margin-top:10px"><button class="btn sm primary" data-act="start" data-w="${esc(w.id)}" ${live?"disabled":""}>Iniciar</button><button class="btn sm" data-act="editw" data-w="${esc(w.id)}">Editar</button></div></div></details>`;
   }
@@ -533,6 +564,9 @@ function viewPlano(){
     <p class="tiny muted" style="margin:6px 0 0">Muda o deload: iniciante reduz 10% da carga; intermediário e avançado reduzem 50% do volume.</p></div>
     <div class="card"><div class="row between"><div><div class="label">Semana de deload</div><div class="small muted">Use ao travar por 2 semanas seguidas.</div></div>
     <button class="btn ${st.deload?"primary":""}" data-act="deload" aria-pressed="${st.deload}">${st.deload?"Ativo":"Ativar"}</button></div></div>
+    <div class="card"><div class="row between"><div><div class="label">Séries automáticas</div><div class="small muted">Soma 1 série quando o livro manda aumentar o volume.</div></div>
+    <button class="btn ${st.autoSets!==false?"primary":""}" data-act="autosets" aria-pressed="${st.autoSets!==false}">${st.autoSets!==false?"Ligado":"Desligado"}</button></div>
+    <p class="tiny muted" style="margin:8px 0 0">${VOL_PHASES.includes(st.phase)?"Nesta fase de volume: +1 série por semana em cada exercício que você completou sem passar do RPE alvo.":"Nesta fase: +1 série só quando o exercício trava 2 sessões seguidas, mas você completou todas as séries sem passar do RPE alvo (sinal de que está se recuperando bem). Se passou do RPE, o app sugere deload."} Limites: no máximo +${MAX_EXTRA} séries por exercício, 1 por semana, e até ${capFor(st.level)} séries por grupo muscular na semana (nível ${st.level}). As séries extras voltam a zero ao terminar um deload ou trocar de fase, como no livro.${(()=>{const n=program.workouts.reduce((a,w)=>a+w.exercises.filter(e=>e.extra).length,0);return n?` Hoje há ${n} exercício(s) com séries extras.`:""})()}</p></div>
     <div class="card"><div class="row between"><h2 style="font-size:22px">Fase atual</h2>
     ${st.phase!=="livre"?`<div class="row"><button class="btn sm" data-act="wk" data-d="-1" aria-label="Semana anterior">−</button><span class="num">Semana ${st.week}</span><button class="btn sm" data-act="wk" data-d="1" aria-label="Próxima semana">+</button></div>`:""}</div>
     <p class="small" style="margin:8px 0 12px">${esc(p.t)}</p><div style="display:grid;gap:8px">`;
@@ -645,8 +679,11 @@ async function finishSession(){
   if(!s.deload) for(const e of s.ex){const ex=findEx(e.exId);const w=e.sets.filter(x=>x.done&&x.kind==="work"&&x.kg>0);if(ex&&w.length) ex.load=Math.max(...w.map(x=>x.kg))}
   saveProgram();
   await saveSession(s);
+  const added=autoSets(s); if(added.length) saveProgram();
   live=null; lsDel(LS_LIVE); stopTimer(); keepAwake(false); $("#session").classList.remove("open");
-  tab="historico"; lsSet(LS_TAB,tab); render(); toast("Treino salvo.");
+  tab="historico"; lsSet(LS_TAB,tab); render();
+  if(added.length) openInfo("Volume aumentado","Treino salvo. +1 série a partir do próximo treino em: "+added.join("; ")+".");
+  else toast("Treino salvo.");
 }
 function findEx(id){for(const w of program.workouts)for(const e of w.exercises)if(e.id===id)return e;return null}
 
@@ -723,7 +760,7 @@ function renderEditor(){
     h+=`<div class="edit-ex" data-i="${i}"><div class="row between"><strong class="small">${i+1}.</strong><div class="row"><button class="btn sm" data-act="mv" data-i="${i}" data-d="-1" aria-label="Subir">↑</button><button class="btn sm" data-act="mv" data-i="${i}" data-d="1" aria-label="Descer">↓</button><button class="btn sm danger" data-act="rmex" data-i="${i}">Remover</button></div></div>
       <div class="field"><label for="n${i}">Exercício</label><input id="n${i}" data-k="name" value="${esc(ex.name)}"></div>
       <div class="field"><label for="c${i}">Tipo (define faixa de reps e RPE do livro)</label><select id="c${i}" data-k="cat">${Object.entries(CATS).map(([k,c])=>`<option value="${k}" ${ex.cat===k?"selected":""}>${esc(c.n)}${c.rmin?` (${c.rmin}–${c.rmax}, RPE ${c.rpe[0]}–${c.rpe[1]})`:""}</option>`).join("")}</select></div>
-      <div class="grid3"><div class="field"><label for="s${i}">Séries</label><input id="s${i}" data-k="sets" inputmode="numeric" value="${ex.sets}"></div>
+      <div class="grid3"><div class="field"><label for="s${i}">Séries${ex.extra?` <span class="tiny" style="color:var(--accent)">+${ex.extra} auto</span>`:""}</label><input id="s${i}" data-k="sets" inputmode="numeric" value="${ex.sets}"></div>
       <div class="field"><label for="a${i}">${ex.unit==="s"?"Seg mín":"Reps mín"}</label><input id="a${i}" data-k="rmin" inputmode="numeric" value="${ex.rmin}"></div>
       <div class="field"><label for="b${i}">${ex.unit==="s"?"Seg máx":"Reps máx"}</label><input id="b${i}" data-k="rmax" inputmode="numeric" value="${ex.rmax}"></div></div>
       <div class="grid3"><div class="field"><label for="l${i}">Carga (kg)</label><input id="l${i}" data-k="load" inputmode="decimal" value="${kg(ex.load)}"></div>
@@ -780,8 +817,9 @@ document.addEventListener("click",async ev=>{
   if(a==="sset"){const k=b.dataset.k;st[k]=k==="warn10"?!st[k]:st[k]===false;saveProgram();render()}
   if(a==="testsnd"){unlockAudio();playAlarm();vibrate([300,120,300])}
   if(a==="level"){st.level=b.dataset.v;saveProgram();render()}
-  if(a==="deload"){st.deload=!st.deload;saveProgram();render()}
-  if(a==="phase"){if(st.phase!==b.dataset.v){st.phase=b.dataset.v;st.week=1}saveProgram();render()}
+  if(a==="deload"){const was=st.deload;st.deload=!st.deload;if(was&&resetExtras())toast("Deload encerrado: séries extras voltaram ao número base.");saveProgram();render()}
+  if(a==="autosets"){st.autoSets=st.autoSets===false;saveProgram();render()}
+  if(a==="phase"){if(st.phase!==b.dataset.v){st.phase=b.dataset.v;st.week=1;if(resetExtras())toast("Nova fase: séries extras voltaram ao número base.")}saveProgram();render()}
   if(a==="wk"){st.week=Math.max(1,Math.min(16,st.week+(+b.dataset.d)));saveProgram();render()}
   if(a==="tree"){const v=b.dataset.v;if(v==="r")treeStep=0;else{const n=TREE[treeStep][v];treeStep=typeof n==="number"?n:n}render()}
   if(a==="delsess") openConfirm("Excluir esta sessão do histórico?",async()=>{await deleteSession(b.dataset.id);render()});
@@ -826,6 +864,7 @@ document.addEventListener("change",async ev=>{
   if(ev.target.id==="bkFile"&&ev.target.files[0]){const t=await ev.target.files[0].text();const box=$("#ioText");if(box)box.value=t;ev.target.value=""}
 });
 let confirmFn=null;
+function openInfo(title,msg){$("#sheet").innerHTML=`<h2 style="font-size:24px">${esc(title)}</h2><p>${esc(msg)}</p><div class="row"><button class="btn primary" data-act="closem">Entendi</button></div>`;$("#modal").classList.add("open")}
 function openConfirm(msg,fn){confirmFn=fn;$("#sheet").innerHTML=`<p>${esc(msg)}</p><div class="row"><button class="btn" data-act="closem">Cancelar</button><button class="btn primary" data-act="confirm-yes">Confirmar</button></div>`;$("#modal").classList.add("open")}
 function openText(msg,val,isImport){$("#sheet").innerHTML=`<div class="field"><label for="ioText">${esc(msg)}</label><textarea id="ioText" rows="8" ${isImport?"":"readonly"}>${esc(val)}</textarea></div><div class="row"><button class="btn" data-act="closem">Fechar</button>${isImport?'<button class="btn" data-act="pickfile">Escolher arquivo</button><button class="btn primary" data-act="doimport">Restaurar</button>':""}</div>`;$("#modal").classList.add("open");if(!isImport){const t=$("#ioText");t.focus();t.select()}}
 $("#modal").addEventListener("click",ev=>{if(ev.target.id==="modal"){$("#modal").classList.remove("open");editing=null}});
