@@ -783,7 +783,8 @@ function viewCorrida(){
     <div class="row wrap" style="margin-top:10px"><button class="btn sm" data-act="tafreg">Registrar TAF</button></div></div>`;
   if(next){
     const p=presc(next.k,c),warn=hardWarn(next.k);
-    h+=`<div class="card next"><div class="label">Próxima corrida</div><h2>${esc(RUNK[next.k].n)}</h2>
+    const ni=q.indexOf(next), skipped=q.some((x,i)=>i>ni&&x.done&&!x.extra);
+    h+=`<div class="card next"><div class="label">${skipped?"Faltou nesta semana":"Próxima corrida"}</div><h2>${esc(RUNK[next.k].n)}</h2>
       <p class="small" style="margin:6px 0">${esc(p.sum)}</p>${p.fc?`<p class="tiny muted" style="margin:0 0 6px">FC alvo: ${esc(p.fc)}</p>`:""}
       ${warn?`<div class="sugg stall small">${esc(warn)}</div>`:""}
       <div class="row wrap" style="margin-top:10px"><button class="btn primary" data-act="watch" data-k="${next.k}">Ver para o relógio</button><button class="btn" data-act="runstart" data-k="${next.k}">Roteiro no celular</button><button class="btn" data-act="runlog" data-k="${next.k}">Registrar</button>${next.swap?`<button class="btn ghost sm" data-act="third">Trocar por ${next.k==="cv"?"contínua":"fartlek"} nesta semana</button>`:""}</div></div>`;
@@ -1000,16 +1001,24 @@ function renderHeader(){
   h+=`<span class="pill" title="Dados salvos neste aparelho">Offline</span>`;
   $("#hdrPills").innerHTML=h;
 }
+// Treinos feitos na semana atual (segunda a domingo)
+function weekDone(off){
+  const m=mondayOf(new Date()); m.setDate(m.getDate()-7*(off||0)); const e=new Date(m); e.setDate(e.getDate()+7);
+  return new Set(sessions.filter(s=>{const d=new Date(s.date);return d>=m&&d<e}).map(s=>s.wid));
+}
+// Próximo treino = o primeiro da ordem que ainda falta nesta semana
 function nextWorkout(){
   const ws=program.workouts; if(!ws.length) return null;
-  const last=sessions[0]; if(!last) return ws[0];
-  const i=ws.findIndex(w=>w.id===last.wid);
-  return ws[(i+1)%ws.length]||ws[0];
+  const done=weekDone();
+  return ws.find(w=>!done.has(w.id))||ws[0];
 }
 function lastDone(wid){const s=sessions.find(s=>s.wid===wid);return s?daysAgo(s.date):"nunca"}
 function viewTreinos(){
   const nx=nextWorkout(); const st=program.settings;
-  const weekCount=sessions.filter(s=>Date.now()-new Date(s.date)<7*864e5).length;
+  const done=weekDone(), ws=program.workouts, weekCount=ws.filter(w=>done.has(w.id)).length;
+  const missing=ws.filter(w=>!done.has(w.id)), allDone=!missing.length;
+  const nxIdx=ws.indexOf(nx), outOfOrder=!allDone&&ws.some((w,i)=>i>nxIdx&&done.has(w.id));
+  const lastWeek=weekDone(1), lastMissing=!weekCount&&lastWeek.size?ws.filter(w=>!lastWeek.has(w.id)):[];
   let h=`<section class="view">`;
   {const c=cycle(); if(c.kind==="taf"&&!st.deload) h+=`<div class="card"><div class="label">Semana do TAF</div><p class="small" style="margin:4px 0 10px">Para chegar descansado na prova, vale ativar a semana de deload da musculação.</p><button class="btn sm primary" data-act="deload">Ativar deload</button></div>`;}
   if(live){
@@ -1017,8 +1026,11 @@ function viewTreinos(){
     h+=`<div class="card next"><div class="label">Em andamento</div><h2>Treino ${esc(live.wid)} · ${esc(w?w.name:"")}</h2><div class="row" style="margin-top:10px"><button class="btn primary" data-act="resume">Continuar treino</button></div></div>`;
   }else if(nx){
     const sets=nx.exercises.reduce((a,e)=>a+eff(e),0);
-    h+=`<div class="card next"><div class="label">Próximo treino</div><h2>Treino ${esc(nx.id)} · ${esc(nx.name)}</h2>
+    h+=`<div class="card next"><div class="label">${allDone?"Semana completa · próximo":outOfOrder?"Faltou nesta semana":"Próximo treino"}</div><h2>Treino ${esc(nx.id)} · ${esc(nx.name)}</h2>
       <div class="muted small">${esc(nx.sub||"")}</div>
+      ${outOfOrder?`<p class="small" style="margin:6px 0 0">Você já fez ${(l=>l.length>1?l.slice(0,-1).join(", ")+" e "+l[l.length-1]:l[0])(ws.filter(w=>done.has(w.id)).map(w=>w.id))} nesta semana. ${missing.length>1?`Faltam ${missing.map(w=>w.id).join(" e ")}, nessa ordem.`:`Falta só o ${nx.id}.`}</p>`:""}
+      ${allDone?`<p class="small" style="margin:6px 0 0">Os 4 treinos desta semana estão feitos. A próxima semana começa na segunda.</p>`:""}
+      ${lastMissing.length?`<p class="small muted" style="margin:6px 0 0">Semana passada ficou faltando: ${lastMissing.map(w=>"Treino "+w.id).join(", ")}. A semana nova começa do A.</p>`:""}
       <div class="row wrap small" style="margin:8px 0 12px"><span class="chip">${nx.exercises.length} exercícios</span><span class="chip">${sets} séries</span><span class="chip">último: ${lastDone(nx.id)}</span>${st.deload?'<span class="chip acc">semana de deload</span>':""}</div>
       <button class="btn primary block" data-act="start" data-w="${esc(nx.id)}">Iniciar treino ${esc(nx.id)}</button></div>`;
   }
@@ -1026,7 +1038,7 @@ function viewTreinos(){
   for(const w of program.workouts){
     h+=`<details class="card" style="padding:0"><summary class="wk-item" style="border:0">
       <span class="letter">${esc(w.id)}</span>
-      <span><strong>${esc(w.name)}</strong><br><span class="muted small">${w.exercises.length} exercícios · último: ${lastDone(w.id)}</span></span>
+      <span><strong>${esc(w.name)}</strong> ${done.has(w.id)?'<span class="chip" style="color:var(--good);border-color:var(--good)">✓ feito</span>':'<span class="chip">falta</span>'}<br><span class="muted small">${w.exercises.length} exercícios · último: ${lastDone(w.id)}</span></span>
       <span class="muted" aria-hidden="true">▾</span></summary>
       <div style="padding:0 14px 14px"><ul class="exlist">`;
     for(const ex of w.exercises){
