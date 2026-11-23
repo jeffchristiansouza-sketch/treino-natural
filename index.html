@@ -274,8 +274,8 @@ function restLabel(sec){
 /* ================= Programa inicial (das suas telas) ================= */
 function E(id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,extra){return Object.assign({id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,unit:"reps",rpe:null,note:""},extra||{})}
 const SEED = {
-  v:6,
-  run:{test12:2900,testNote:"3,11 km em 12min51s, convertido para 12 min",tafDate:"2027-04-05",tafProv:true,birth:"",fcRep:52,third:"cc",tafs:[]},
+  v:7,
+  run:{test12:2900,testNote:"3,11 km em 12min51s, convertido para 12 min",tafDate:"2027-04-05",tafProv:true,birth:"",fcRep:52,fcMaxMed:197,third:"cc",tafs:[]},
   settings:{level:"iniciante",phase:"livre",week:1,deload:false,ackFreq:true},
   workouts:[
     {id:"A",name:"Empurrar",sub:"Peito · Ombros · Tríceps · Abdômen",exercises:[
@@ -358,7 +358,8 @@ function migrate(p){
     if(!p.run) p.run=clone(SEED.run);
     p.v=5; migrated=true;
   }
-  if(p.v===5){ if(p.run) p.run.third="cc"; p.v=6; migrated=true; }  // fartlek vira a 4ª corrida, opcional
+  if(p.v===5){ if(p.run) p.run.third="cc"; p.v=6; migrated=true; }
+  if(p.v===6){ if(p.run&&!p.run.fcMaxMed) p.run.fcMaxMed=197; p.v=7; migrated=true; }  // FC máxima medida no último TAF  // fartlek vira a 4ª corrida, opcional
   return p;
 }
 let migrated=false;
@@ -684,7 +685,7 @@ function mondayOf(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());
 function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function fmtD(d){return d.toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"})}
 function ageNow(){const r=rc();if(!r.birth)return null;const b=dLocal(r.birth),n=new Date();let a=n.getFullYear()-b.getFullYear();if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))a--;return a}
-function fcMax(){const a=ageNow();return a==null?null:Math.round(208-0.7*a)}            // Tanaka (item 5.2.2.8)
+function fcMax(){const r=rc();if(r.fcMaxMed)return r.fcMaxMed;const a=ageNow();return a==null?null:Math.round(208-0.7*a)}  // medida tem prioridade sobre a fórmula (item 5.2.2.8)            // Tanaka (item 5.2.2.8)
 function karv(p){const r=rc(),m=fcMax();if(!m||!r.fcRep)return null;return Math.round((m-r.fcRep)*p+r.fcRep)} // Karvonen (5.2.2.9)
 function cycle(d){
   d=d||new Date(); const r=rc(); if(!r.tafDate) return {kind:"sem",wk:null,lw:1};
@@ -779,7 +780,7 @@ function viewCorrida(){
   let h=`<section class="view">`;
   h+=`<div class="card"><div class="row between wrap"><div><div class="label">Ciclo do TAF</div><h2 style="font-size:26px">${esc(CYCLE_NAMES[c.kind])}${c.wk?` · semana ${c.wk} de 12`:""}</h2></div><button class="btn sm" data-act="runcfg">Ajustes</button></div>
     <p class="small" style="margin:6px 0 8px">${c.taf?`TAF em ${fmtD(c.taf)}${r.tafProv?" (data provisória: atualize quando sair)":""}. `:"Informe a data do próximo TAF em Ajustes. "}${c.kind==="trans"?`O ciclo de 12 semanas do manual começa em ${fmtD(c.start)}; até lá, a carga é a da semana 1.`:c.kind==="vol"?"Semanas 1 a 6: a distância aumenta, ritmo moderado.":c.kind==="ritmo"?"Semanas 7 a 10: o ritmo sobe e a distância diminui.":c.kind==="pre"?"Semana mais leve antes do TAF: menos corridas, mesmos ritmos.":c.kind==="taf"?"Só trote leve até 2 dias antes. Depois, registre o resultado.":c.kind==="pos"?"Registre o resultado do TAF e a data do próximo para começar o novo ciclo.":""}</p>
-    <div class="row wrap tiny"><span class="chip">Teste 12 min: ${r.test12} m (${paceStr(720/(r.test12/1000))})</span>${fcMax()?`<span class="chip">FC máx ${fcMax()} bpm</span>`:`<span class="chip acc">Informe a data de nascimento em Ajustes</span>`}${r.fcRep?`<span class="chip">FC repouso ${r.fcRep}</span>`:""}</div>
+    <div class="row wrap tiny"><span class="chip">Teste 12 min: ${r.test12} m (${paceStr(720/(r.test12/1000))})</span>${fcMax()?`<span class="chip">FC máx ${fcMax()} bpm${r.fcMaxMed?" (medida)":""}</span>`:`<span class="chip acc">Informe a data de nascimento em Ajustes</span>`}${r.fcRep?`<span class="chip">FC repouso ${r.fcRep}</span>`:""}</div>
     <div class="row wrap" style="margin-top:10px"><button class="btn sm" data-act="tafreg">Registrar TAF</button></div></div>`;
   if(next){
     const p=presc(next.k,c),warn=hardWarn(next.k);
@@ -806,8 +807,9 @@ function openRunCfg(){
     <label class="row small"><input type="checkbox" id="rcP" ${r.tafProv?"checked":""}> Data provisória</label>
     <div class="grid2"><div class="field"><label for="rcB">Data de nascimento</label><input id="rcB" type="date" value="${r.birth||""}"></div>
     <div class="field"><label for="rcF">FC de repouso (bpm)</label><input id="rcF" inputmode="numeric" value="${r.fcRep||""}"></div></div>
+    <div class="field"><label for="rcM">FC máxima medida (bpm)</label><input id="rcM" inputmode="numeric" value="${r.fcMaxMed||""}" placeholder="vazio = calcula pela idade"></div>
     <div class="field"><label for="rcX">3ª corrida da semana</label><select id="rcX"><option value="cc" ${r.third!=="cv"?"selected":""}>Corrida contínua (fartlek fica como 4ª, opcional)</option><option value="cv" ${r.third==="cv"?"selected":""}>Fartlek (contínua fica como 4ª, opcional)</option></select></div>
-    <p class="tiny muted" style="margin:0">A data de nascimento serve só para a FC máxima (fórmula de Tanaka, do manual) e fica salva neste app.</p>
+    <p class="tiny muted" style="margin:0">A FC máxima medida (num TAF ou teste máximo) tem prioridade. Sem ela, o app calcula pela idade (fórmula de Tanaka, do manual). Os dados ficam salvos só neste app.</p>
     <div class="row"><span style="flex:1"></span><button class="btn primary" data-act="saverc">Salvar</button></div>`;
   $("#modal").classList.add("open");
 }
@@ -1366,7 +1368,8 @@ document.addEventListener("click",async ev=>{
   if(a==="saverc"){
     const r=rc(), T=parseInt($("#rcT").value); if(T>=800&&T<=5000) r.test12=T;
     r.tafDate=$("#rcD").value||r.tafDate; r.tafProv=$("#rcP").checked; r.birth=$("#rcB").value||r.birth;
-    const f=parseInt($("#rcF").value); r.fcRep=f>=30&&f<=110?f:r.fcRep; r.third=$("#rcX").value;
+    const f=parseInt($("#rcF").value); r.fcRep=f>=30&&f<=110?f:r.fcRep;
+    const fm=parseInt($("#rcM").value); r.fcMaxMed=fm>=140&&fm<=230?fm:null; r.third=$("#rcX").value;
     saveProgram(); $("#modal").classList.remove("open"); render(); toast("Ajustes salvos.");
   }
   if(a==="pse"){ rlPse=+b.dataset.v; document.querySelectorAll("#pseSeg button").forEach(x=>x.setAttribute("aria-pressed",String(+x.dataset.v===rlPse))); $("#pseTxt").textContent=PSE_TXT[rlPse]; }
