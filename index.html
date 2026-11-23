@@ -134,7 +134,7 @@ section.view{padding-top:16px;display:grid;gap:14px}
 .field label{font-size:13px;color:var(--muted)}
 .field input,.field select,.field textarea{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;align-items:end}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
 .seg button{border:1px solid var(--line);background:var(--surface-2);border-radius:8px;padding:6px 10px;font-size:14px}
 .seg button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
@@ -769,7 +769,7 @@ function hardWarn(kind){
 }
 function runLine(r){
   const pace=r.distKm&&r.durSec?paceStr(r.durSec/r.distKm):"";
-  return [new Date(r.date).toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit"}),r.distKm?kg(r.distKm)+" km":"",r.durSec?minTxt(r.durSec):"",pace,r.tiros?r.tiros+" tiros":"",r.pse!=null?"PSE "+kg(r.pse):"",r.fc?r.fc+" bpm":""].filter(Boolean).join(" · ");
+  return [new Date(r.date).toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit"}),r.distKm?kg(r.distKm)+" km":"",r.durSec?minTxt(r.durSec):"",pace,r.tiros?r.tiros+" tiros":"",r.tiroSec?"média "+fmt(r.tiroSec):"",r.fcRec?"rec. "+r.fcRec+" bpm":"",r.pse!=null?"PSE "+kg(r.pse):"",r.fc?r.fc+" bpm":""].filter(Boolean).join(" · ");
 }
 function segTable(p){
   return `<ul class="exlist">${p.segs.map(s=>`<li><span class="small">${esc(s.lab)}</span><span class="small num muted" style="text-align:right">${minTxt(s.sec)}${s.pace?"<br>"+paceStr(s.pace):""}</span></li>`).join("")}</ul>`;
@@ -812,18 +812,32 @@ function openRunCfg(){
   $("#modal").classList.add("open");
 }
 let rlPse=null;
+// Campos do registro: intervalado mede tiros e recuperação; as outras corridas, distância, tempo e FC média
+function rlFieldsHtml(k,pref){
+  pref=pref||{}; const d=pref.durSec||0;
+  const total=`<div class="grid3"><div class="field"><label for="rlKm">Distância (km)</label><input id="rlKm" inputmode="decimal" value="${pref.distKm?kg(pref.distKm):""}"></div>
+    <div class="field"><label for="rlM">Tempo: min</label><input id="rlM" inputmode="numeric" value="${d?Math.floor(d/60):""}"></div>
+    <div class="field"><label for="rlS">seg</label><input id="rlS" inputmode="numeric" value="${d?Math.round(d%60):""}"></div></div>`;
+  if(k!=="tiai") return total+`<div class="field"><label for="rlFc">FC média (opcional)</label><input id="rlFc" inputmode="numeric" placeholder="bpm"></div>`;
+  const p=presc("tiai"), f70=fcMax()?Math.round(fcMax()*.7):null;
+  return `<div class="grid3"><div class="field"><label for="rlT">Tiros feitos</label><input id="rlT" inputmode="numeric" value="${pref.tiros??p.reps}"></div>
+    <div class="field"><label for="rlTs">Tempo médio do tiro</label><input id="rlTs" inputmode="numeric" placeholder="${fmt(p.tSec)}"></div>
+    <div class="field"><label for="rlFr">FC no fim da recuperação</label><input id="rlFr" inputmode="numeric" placeholder="bpm"></div></div>
+    <div class="field"><label for="rlTl">Tempo de cada tiro (opcional)</label><input id="rlTl" placeholder="ex.: 1:32 1:33 1:34 1:35"></div>
+    <p class="tiny muted" style="margin:0">Alvo: ${p.reps} × ${p.tDist} m em ${fmt(p.tSec)}, recuperação de ${p.rest} s. FC no fim da recuperação: a mais alta entre os pontos baixos do gráfico de FC, logo antes de cada tiro${f70?`. O manual pede abaixo de ${f70} bpm (70% da FC máx)`:""}.</p>
+    <details><summary class="small muted" style="padding:6px 0">Distância e tempo totais (opcional)</summary>${total}</details>`;
+}
+function parseMS(v){
+  v=String(v||"").trim(); if(!v) return null;
+  const m=v.match(/^(\d+)\s*[:'m.,]\s*(\d{1,2})/); if(m) return +m[1]*60+ +m[2];
+  const n=parseInt(v); if(isNaN(n)) return null; return n<10?n*60:n;
+}
 function openRunLog(pref){
   pref=pref||{}; rlPse=pref.pse??null; const k=pref.kind||"cc";
-  const d=pref.durSec||0;
   $("#sheet").innerHTML=`<div class="row between"><h2 style="font-size:24px">Registrar corrida</h2><button class="btn sm ghost" data-act="closem">Fechar</button></div>
     <div class="grid2"><div class="field"><label for="rlK">Tipo</label><select id="rlK">${Object.entries(RUNK).map(([key,v])=>`<option value="${key}" ${key===k?"selected":""}>${v.n}</option>`).join("")}</select></div>
     <div class="field"><label for="rlD">Data</label><input id="rlD" type="date" value="${ymd(new Date())}"></div></div>
-    <div class="grid3"><div class="field"><label for="rlKm">Distância (km)</label><input id="rlKm" inputmode="decimal" value="${pref.distKm?kg(pref.distKm):""}"></div>
-    <div class="field"><label for="rlM">Tempo: min</label><input id="rlM" inputmode="numeric" value="${d?Math.floor(d/60):""}"></div>
-    <div class="field"><label for="rlS">seg</label><input id="rlS" inputmode="numeric" value="${d?Math.round(d%60):""}"></div></div>
-    <div class="grid3"><div class="field"><label for="rlFc">FC média</label><input id="rlFc" inputmode="numeric" placeholder="opcional"></div>
-    <div class="field"><label for="rlFr">FC fim do intervalo</label><input id="rlFr" inputmode="numeric" placeholder="intervalado"></div>
-    <div class="field"><label for="rlT">Tiros feitos</label><input id="rlT" inputmode="numeric" value="${pref.tiros??""}" placeholder="intervalado"></div></div>
+    <div id="rlFields">${rlFieldsHtml(k,pref)}</div>
     <div class="field"><label>Esforço percebido (escala de Borg, 0 a 10)</label><div class="seg" id="pseSeg">${[0,1,2,3,4,5,6,7,8,9,10].map(v=>`<button data-act="pse" data-v="${v}" aria-pressed="${rlPse===v}">${v}</button>`).join("")}</div><div class="tiny muted" id="pseTxt">${rlPse!=null?PSE_TXT[rlPse]:"3 moderado · 5 forte · 7 muito forte · 10 máximo"}</div></div>
     <div class="field"><label for="rlN">Observações</label><input id="rlN" placeholder="terreno, clima, dores"></div>
     <div class="row"><span style="flex:1"></span><button class="btn primary" data-act="saverun">Salvar corrida</button></div>`;
@@ -844,6 +858,13 @@ function runFeedback(r){
     if(r.fcRec>fcMax()*.7) out.push(p.rest>=90?"No fim do intervalo a FC ainda estava acima de 70% da máxima. Pelo manual, como o intervalo já é de 90 s, diminua a intensidade dos tiros na próxima.":`No fim do intervalo a FC ainda estava acima de 70% da máxima. Pelo manual, aumente o intervalo na próxima (até 90 s).`);
     else out.push("Recuperou abaixo de 70% da FC máxima entre os tiros: carga adequada.");
   }
+  if(r.kind==="tiai"&&r.tiroSec){
+    const dif=r.tiroSec-p.tSec;
+    if(dif>3) out.push(`Tiros em média ${fmt(r.tiroSec)}, ${dif} s acima do alvo (${fmt(p.tSec)}).${r.fcRec&&fcMax()&&r.fcRec<=fcMax()*.7?" Como a FC recuperou bem, busque o alvo na próxima.":" Se a recuperação ficou curta, use a regra da FC abaixo."}`);
+    else if(dif<-4) out.push(`Tiros em média ${fmt(r.tiroSec)}, mais rápidos que o alvo (${fmt(p.tSec)}). O manual pede o tempo do alvo, não o máximo: correr mais forte cansa mais sem ganho extra.`);
+    else out.push(`Tiros em média ${fmt(r.tiroSec)}: no alvo (${fmt(p.tSec)}).`);
+  }
+  if(r.kind==="tiai"&&r.tiroTimes&&r.tiroTimes.length>=3&&r.tiroTimes[r.tiroTimes.length-1]-r.tiroTimes[0]>5) out.push("Os tiros foram ficando mais lentos: comece um pouco mais controlado e tente manter o mesmo tempo do primeiro ao último.");
   if(r.kind==="tiai"&&r.tiros&&r.tiros<p.reps) out.push(`Você fez ${r.tiros} de ${p.reps} tiros. Se parou por cansaço, mantenha a mesma carga na próxima.`);
   if(r.pse!=null){
     if(r.kind==="cc"&&r.pse>=7) out.push("Esforço alto para uma contínua: confira sono, alimentação e o treino anterior.");
@@ -1352,9 +1373,12 @@ document.addEventListener("click",async ev=>{
   if(a==="pse"){ rlPse=+b.dataset.v; document.querySelectorAll("#pseSeg button").forEach(x=>x.setAttribute("aria-pressed",String(+x.dataset.v===rlPse))); $("#pseTxt").textContent=PSE_TXT[rlPse]; }
   if(a==="saverun"){
     const d=$("#rlD").value||ymd(new Date()), now=new Date(), dt=dLocal(d); dt.setHours(now.getHours(),now.getMinutes(),now.getSeconds());
-    const km=parseNum($("#rlKm").value), mi=parseInt($("#rlM").value)||0, se=parseInt($("#rlS").value)||0, n=v=>{const x=parseInt(v);return isNaN(x)?null:x};
-    const r={id:"r"+Date.now(),date:dt.toISOString(),kind:$("#rlK").value,distKm:km,durSec:mi*60+se||null,fc:n($("#rlFc").value),fcRec:n($("#rlFr").value),tiros:n($("#rlT").value),pse:rlPse,note:$("#rlN").value.trim(),wk:cycle(dt).wk||null};
-    if(!r.distKm&&!r.durSec){toast("Informe a distância ou o tempo.");return}
+    const val=id=>{const e=$("#"+id);return e?e.value:""};
+    const km=parseNum(val("rlKm")), mi=parseInt(val("rlM"))||0, se=parseInt(val("rlS"))||0, n=v=>{const x=parseInt(v);return isNaN(x)?null:x};
+    const tl=val("rlTl").split(/[\s;\/]+/).map(parseMS).filter(x=>x&&x>5);
+    let ts=parseMS(val("rlTs")); if(!ts&&tl.length) ts=Math.round(tl.reduce((a,b)=>a+b,0)/tl.length);
+    const r={id:"r"+Date.now(),date:dt.toISOString(),kind:$("#rlK").value,distKm:km,durSec:mi*60+se||null,fc:n(val("rlFc")),fcRec:n(val("rlFr")),tiros:n(val("rlT")),tiroSec:ts,tiroTimes:tl.length?tl:null,pse:rlPse,note:$("#rlN").value.trim(),wk:cycle(dt).wk||null};
+    if(r.kind==="tiai"?!(r.tiros||r.tiroSec||r.distKm||r.durSec):!(r.distKm||r.durSec)){toast(r.kind==="tiai"?"Informe os tiros feitos ou o tempo médio do tiro.":"Informe a distância ou o tempo.");return}
     await saveRun(r); render(); const fb=runFeedback(r);
     const adv=r.kind==="cc"?slowCCAdvice():null;
     openInfo("Corrida salva", fb.length?fb.join(" "):"Registro salvo.", adv?`<div class="sugg stall small">${esc(adv.text)}</div><div class="row wrap"><button class="btn primary" data-act="lowertest" data-v="${adv.nT}">Baixar para ${adv.nT} m</button><button class="btn" data-act="keeptest">Manter ${adv.T} m</button></div>`:"");
@@ -1420,6 +1444,7 @@ document.addEventListener("input",ev=>{
 });
 document.addEventListener("change",async ev=>{
   if(ev.target.id==="chartSel"){chartEx=ev.target.value;drawChart()}
+  if(ev.target.id==="rlK"){$("#rlFields").innerHTML=rlFieldsHtml(ev.target.value,{})}
   if(ev.target.id==="bkFile"&&ev.target.files[0]){const t=await ev.target.files[0].text();const box=$("#ioText");if(box)box.value=t;ev.target.value=""}
 });
 let confirmFn=null;
