@@ -820,11 +820,10 @@ function rlFieldsHtml(k,pref){
     <div class="field"><label for="rlS">seg</label><input id="rlS" inputmode="numeric" value="${d?Math.round(d%60):""}"></div></div>`;
   if(k!=="tiai") return total+`<div class="field"><label for="rlFc">FC média (opcional)</label><input id="rlFc" inputmode="numeric" placeholder="bpm"></div>`;
   const p=presc("tiai"), f70=fcMax()?Math.round(fcMax()*.7):null;
-  return `<div class="grid3"><div class="field"><label for="rlT">Tiros feitos</label><input id="rlT" inputmode="numeric" value="${pref.tiros??p.reps}"></div>
-    <div class="field"><label for="rlTs">Tempo médio do tiro</label><input id="rlTs" inputmode="numeric" placeholder="${fmt(p.tSec)}"></div>
-    <div class="field"><label for="rlFr">FC no fim da recuperação</label><input id="rlFr" inputmode="numeric" placeholder="bpm"></div></div>
-    <div class="field"><label for="rlTl">Tempo de cada tiro (opcional)</label><input id="rlTl" placeholder="ex.: 1:32 1:33 1:34 1:35"></div>
-    <p class="tiny muted" style="margin:0">Alvo: ${p.reps} × ${p.tDist} m em ${fmt(p.tSec)}, recuperação de ${p.rest} s. FC no fim da recuperação: a mais alta entre os pontos baixos do gráfico de FC, logo antes de cada tiro${f70?`. O manual pede abaixo de ${f70} bpm (70% da FC máx)`:""}.</p>
+  return `<div class="field"><label for="rlTl">Tempo de cada tiro</label><input id="rlTl" inputmode="text" autocomplete="off" placeholder="ex.: 1:32 1:33 1:35 1:34"><div class="small" id="rlTlSum" style="color:var(--accent);min-height:1.4em">Alvo: ${fmt(p.tSec)} por tiro. Separe os tempos com espaço.</div></div>
+    <div class="grid2"><div class="field"><label for="rlT">Tiros feitos</label><input id="rlT" inputmode="numeric" value="${pref.tiros??p.reps}"></div>
+    <div class="field"><label for="rlFr">FC mais alta no fim das recuperações</label><input id="rlFr" inputmode="numeric" placeholder="bpm"></div></div>
+    <p class="tiny muted" style="margin:0">Plano: ${p.reps} × ${p.tDist} m em ${fmt(p.tSec)}, recuperação de ${p.rest} s. Para a FC, olhe no gráfico os pontos mais baixos logo antes de cada tiro e anote o mais alto deles${f70?`. O manual pede abaixo de ${f70} bpm (70% da FC máx)`:""}.</p>
     <details><summary class="small muted" style="padding:6px 0">Distância e tempo totais (opcional)</summary>${total}</details>`;
 }
 function parseMS(v){
@@ -1435,6 +1434,12 @@ document.addEventListener("keydown",ev=>{
 });
 document.addEventListener("input",ev=>{
   const t=ev.target;
+  if(t.id==="rlTl"){
+    const tl=t.value.split(/[\s;\/]+/).map(parseMS).filter(x=>x&&x>5), p=presc("tiai"), box=$("#rlTlSum");
+    if(tl.length){const av=Math.round(tl.reduce((a,b)=>a+b,0)/tl.length);box.textContent=`${tl.length} ${tl.length>1?"tiros":"tiro"} · média ${fmt(av)} (alvo ${fmt(p.tSec)})`;$("#rlT").value=tl.length}
+    else box.textContent=`Alvo: ${fmt(p.tSec)} por tiro. Separe os tempos com espaço.`;
+    return;
+  }
   if(t.id==="sessNote"&&live){live.note=t.value;lsSet(LS_LIVE,live);return}
   if(t.dataset&&t.dataset.f&&live){
     const s=live.ex[+t.dataset.e].sets[+t.dataset.s];
