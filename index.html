@@ -274,7 +274,7 @@ function restLabel(sec){
 /* ================= Programa inicial (das suas telas) ================= */
 function E(id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,extra){return Object.assign({id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,unit:"reps",rpe:null,note:""},extra||{})}
 const SEED = {
-  v:7,
+  v:8,
   run:{test12:2900,testNote:"3,11 km em 12min51s, convertido para 12 min",tafDate:"2027-04-05",tafProv:true,birth:"",fcRep:52,fcMaxMed:197,third:"cc",tafs:[]},
   settings:{level:"iniciante",phase:"livre",week:1,deload:false,ackFreq:true},
   workouts:[
@@ -300,11 +300,10 @@ const SEED = {
     ]},
     {id:"C",name:"Pernas",sub:"Quadríceps · Posterior · Glúteos · Panturrilha",exercises:[
       E("agach-sumo","Agachamento Sumô (halteres)","mil",4,6,6,26,2,"full",["quad","glut"],["eret"]),
-      E("stiff","Levantamento Terra Pernas Rígidas (stiff)","mil",4,5,5,30,2,"full",["glut","isq","eret"],[]),
+      E("stiff","Levantamento Terra Pernas Rígidas (stiff)","mil",5,5,5,30,2,"full",["glut","isq","eret"],[]),
       E("leg-press","Leg Press Inclinado","mig",3,9,10,100,10,"2",["quad","glut"],[]),
-      E("extensora","Extensão de Pernas (máquina)","ai",3,8,10,60,5,"2",["quad"],[],{note:"Pode fazer em super set com a flexora deitado para ganhar tempo (antagonistas)"}),
-      E("flexora","Flexão de Pernas Deitado (máquina)","ai",3,8,10,26,2.5,"2",["isq"],[]),
-      E("flexora-sent","Flexão de Pernas Sentado (máquina)","ai",3,10,12,25,2.5,"2",["isq"],[],{note:"Novo: carga estimada, ajuste na 1ª sessão"}),
+      E("extensora","Extensão de Pernas (máquina)","ai",3,8,10,60,5,"2",["quad"],[],{note:"Pode fazer em super set com a flexora sentado para ganhar tempo (antagonistas)"}),
+      E("flexora-sent","Flexão de Pernas Sentado (máquina)","ai",5,10,12,25,2.5,"2",["isq"],[],{note:"Única flexora: o posterior trabalha mais alongado com o quadril dobrado"}),
       E("pant-sent","Elevação de Panturrilha Sentado (máquina)","ai",5,12,15,30,5,"2",["pant"],[],{rpe:9}),
       E("pant-uni","Elevação de Panturrilha Unilateral","ai",5,12,12,0,0,"0",["pant"],[]),
       E("fb-c","Flexão de Braços (TAF)","taf",3,1,1,0,0,"0",["peito"],["triceps","deltAnt"],{taf:"fb",taperSkip:true,note:"No dia de perna, com a parte de cima descansada"})
@@ -359,7 +358,19 @@ function migrate(p){
     p.v=5; migrated=true;
   }
   if(p.v===5){ if(p.run) p.run.third="cc"; p.v=6; migrated=true; }
-  if(p.v===6){ if(p.run&&!p.run.fcMaxMed) p.run.fcMaxMed=197; p.v=7; migrated=true; }  // FC máxima medida no último TAF  // fartlek vira a 4ª corrida, opcional
+  if(p.v===6){ if(p.run&&!p.run.fcMaxMed) p.run.fcMaxMed=197; p.v=7; migrated=true; }  // FC máxima medida no último TAF
+  if(p.v===7){
+    // Treino C: só a flexora sentado (5 séries) e stiff com 5 séries; posteriores continuam com 10 séries por semana
+    p.workouts.forEach(w=>{
+      const i=w.exercises.findIndex(e=>e.id==="flexora"); if(i>=0) w.exercises.splice(i,1);
+      w.exercises.forEach(e=>{
+        if(e.id==="flexora-sent"&&e.sets<5){e.sets=5;e.note="Única flexora: o posterior trabalha mais alongado com o quadril dobrado"}
+        if(e.id==="stiff"&&e.sets<5) e.sets=5;
+        if(e.id==="extensora"&&e.note) e.note=e.note.replace("flexora deitado","flexora sentado");
+      });
+    });
+    p.v=8; migrated=true;
+  }  // fartlek vira a 4ª corrida, opcional
   return p;
 }
 let migrated=false;
