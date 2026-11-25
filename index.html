@@ -478,6 +478,18 @@ function tafSuggest(ex,h){
   res.text+=" Digite as repetições feitas antes de marcar a série.";
   return res;
 }
+function rpeSets(ex,n){
+  const T=targetRpe(ex); if(T==null||!n) return null;
+  if(ex.cat==="taf"||n===1) return Array(n).fill(Math.round(T));
+  const c=CATS[ex.cat]||{}, lo=c.rpe?c.rpe[0]:6, hi=Math.max(c.rpe?c.rpe[1]:10, ex.rpe||0);
+  const v=Array.from({length:n},(_,i)=>Math.min(hi,Math.max(lo,Math.round(T-1+2*i/(n-1)))));
+  const S=Math.round(T*n); let sum=v.reduce((a,b)=>a+b,0), g=0;
+  while(sum>S&&g++<50){let k=-1;for(let i=n-1;i>=0;i--)if(v[i]>lo&&(i===0||v[i]>v[i-1])){k=i;break} if(k<0)break; v[k]--;sum--}
+  while(sum<S&&g++<100){let k=-1;for(let i=0;i<n;i++)if(v[i]<hi&&(i===n-1||v[i]<v[i+1])){k=i;break} if(k<0)break; v[k]++;sum++}
+  return v;
+}
+function rpeTxt(ex,n){const v=rpeSets(ex,n);if(!v)return "";return v.every(x=>x===v[0])?`RPE ${v[0]}`:`RPE ${v.join(" · ")}`}
+function avgRpe(sets){const r=sets.filter(s=>s.rpe!=null).map(s=>s.rpe);return r.length?r.reduce((a,b)=>a+b,0)/r.length:null}
 function suggest(ex){
   const st=program.settings, h=historyFor(ex.id).filter(x=>!x.deload);
   if(ex.cat==="taf") return tafSuggest(ex,h);
@@ -492,7 +504,7 @@ function suggest(ex){
   const topKg=Math.max(...last.sets.map(s=>s.kg||0));
   const tr=targetRpe(ex);
   const allTop=last.sets.length>=ex.sets && last.sets.every(s=>s.reps>=ex.rmax && (s.kg||0)>=topKg-0.01);
-  const overRpe=tr!=null && last.sets.some(s=>s.rpe!=null && s.rpe>tr+0.5);
+  const lastAvg=avgRpe(last.sets), overRpe=tr!=null && lastAvg!=null && lastAvg>tr+0.5;   // o RPE indicado é a média das séries
   if(h.length>=3 && h[0].best<=h[2].best*1.005 && h[1].best<=h[2].best*1.005){res.stall=true;}
   if(ex.unit==="s"){
     res.load=topKg; res.reps=allTop?ex.rmax+5:ex.rmax;
@@ -503,7 +515,7 @@ function suggest(ex){
   }else{
     const topReps=Math.max(...last.sets.filter(s=>(s.kg||0)>=topKg-0.01).map(s=>s.reps));
     res.load=topKg; res.reps=Math.min(ex.rmax,Math.max(ex.rmin,topReps+1));
-    res.text=overRpe?`Última vez passou do RPE alvo (${tr}). Mantenha ${kg(topKg)} kg e foque em técnica.`
+    res.text=overRpe?`Última vez o RPE médio (${kg(Math.round(lastAvg*10)/10)}) passou do alvo. Mantenha ${kg(topKg)} kg e foque em técnica.`
       :`Mantenha ${kg(topKg)} kg e tente ${res.reps} reps na top set (superar a top set é o principal).`;
   }
   const justAdded=ex.extra>0&&recentAdd(ex,8);
@@ -533,7 +545,7 @@ function autoSets(s){
     const work=e.sets.filter(x=>x.done&&x.kind==="work"&&x.reps>0);
     if(work.length<eff(ex)) continue;                                   // não completou as séries atuais
     const tr=targetRpe(ex);
-    if(tr!=null && work.some(x=>x.rpe!=null&&x.rpe>tr+0.5)) continue;   // esforço acima do alvo: não está se recuperando bem
+    {const av=avgRpe(work); if(tr!=null && av!=null && av>tr+0.5) continue;}   // esforço acima do alvo: não está se recuperando bem
     const h=historyFor(ex.id).filter(x=>!x.deload);
     const stalled=h.length>=3 && h[0].best<=h[2].best*1.005 && h[1].best<=h[2].best*1.005;
     if(!volPhase && !stalled) continue;                                 // fora das fases de volume, só quando trava
@@ -655,7 +667,7 @@ function openExInfo(id){
       ${s?`<div><div class="label">Secundários</div>${esc(s)}</div>`:""}
       ${!p&&!s?`<div class="muted">Preparatório: não conta volume.</div>`:""}
       <div><div class="label">Tipo</div>${esc(c.n||"")}</div>
-      <div><div class="label">Plano</div><span class="num">${eff(ex)}×${repsTxt(ex)}</span>${targetRpe(ex)?` · RPE ${kg(targetRpe(ex))}`:""}<br><span class="muted">${esc(warmPlan(ex).n||"")}</span></div>
+      <div><div class="label">Plano</div><span class="num">${eff(ex)}×${repsTxt(ex)}</span>${rpeTxt(ex,eff(ex))?` · ${rpeTxt(ex,eff(ex))}`:""}<br><span class="muted">${esc(warmPlan(ex).n||"")}</span></div>
     </div></div>
     ${ex.note?`<p class="small muted" style="margin:0">${esc(ex.note)}</p>`:""}
     ${imgKey(ex)?`<p class="tiny muted" style="margin:0">Foto: Free Exercise DB (domínio público). A foto mostra o movimento; o equipamento da sua academia pode ser diferente.</p>`:""}`;
@@ -1117,7 +1129,7 @@ function viewPlano(){
     ${st.phase!=="livre"?`<div class="row"><button class="btn sm" data-act="wk" data-d="-1" aria-label="Semana anterior">−</button><span class="num">Semana ${st.week}</span><button class="btn sm" data-act="wk" data-d="1" aria-label="Próxima semana">+</button></div>`:""}</div>
     <p class="small" style="margin:8px 0 12px">${esc(p.t)}</p><div style="display:grid;gap:8px">`;
   PHASES.forEach((ph,i)=>{
-    h+=`<button class="phase" data-act="phase" data-v="${ph.id}" aria-pressed="${st.phase===ph.id}"><span class="n">${i}</span><span><strong>${esc(ph.n)}</strong> <span class="muted small">· ${esc(ph.dur)} · RPE alvo ~${kg(ph.rpe)}</span></span></button>`;
+    h+=`<button class="phase" data-act="phase" data-v="${ph.id}" aria-pressed="${st.phase===ph.id}"><span class="n">${i}</span><span><strong>${esc(ph.n)}</strong> <span class="muted small">· ${esc(ph.dur)} · RPE médio ${Number.isInteger(ph.rpe)?ph.rpe:Math.floor(ph.rpe)+" a "+Math.ceil(ph.rpe)}</span></span></button>`;
   });
   h+=`</div><p class="tiny muted" style="margin:10px 0 0">Fases 1–6 seguem o macrociclo sugerido no livro (blocos, com linear e ondulante como recheio). O RPE alvo de cada exercício respeita o teto da tabela por tipo de exercício.</p></div>`;
   h+=`<div class="card tree"><h2 style="font-size:22px">Quando aumentar o volume?</h2>${treeHtml()}</div>
@@ -1185,7 +1197,8 @@ function startSession(wid){
   live={id:"s"+Date.now(),wid:w.id,wname:w.name,start:Date.now(),deload:program.settings.deload,phase:program.settings.phase,note:"",ex:w.exercises.map(ex=>{
     const sg=suggest(ex); const sets=[];
     if(!program.settings.deload && sg.load>0) for(const [pct,r,lab] of warmPlan(ex,w).sets) sets.push({kind:"warm",label:lab,kg:roundTo(sg.load*pct,ex.inc>=2?2:1),reps:r,rpe:null,done:false});
-    for(let i=0;i<sg.sets;i++) sets.push({kind:"work",label:i===0?"Top":"S"+(i+1),kg:sg.load||null,reps:null,rpe:null,done:false,target:sg.reps});
+    const rs=rpeSets(ex,sg.sets)||[];
+    for(let i=0;i<sg.sets;i++) sets.push({kind:"work",label:i===0?"Top":"S"+(i+1),kg:sg.load||null,reps:null,rpe:null,done:false,target:sg.reps,rpeT:rs[i]??null});
     return {exId:ex.id,name:ex.name,cat:ex.cat,unit:ex.unit,sets,sugg:sg.text,stall:sg.stall,last:sg.last?sg.last.sets.map(s=>(s.kg?kg(s.kg)+"×":"")+s.reps+(s.rpe!=null?"@"+kg(s.rpe):"")).join(" · "):null,lastDate:sg.last?sg.last.date:null,target:`${sg.sets}×${repsTxt(ex)}`,rpe:targetRpe(ex),rest:ex.cat==="taf"?tafPlan(ex).rest:null};
   })};
   lsSet(LS_LIVE,live); renderSession(); $("#session").classList.add("open"); $("#session").scrollTop=0; keepAwake(true);
@@ -1198,7 +1211,7 @@ function renderSession(){
     <div class="row"><button class="btn sm ghost" data-act="minimize">Fechar</button><button class="btn sm primary" data-act="finish">Concluir</button></div></div><div style="display:grid;gap:14px;padding-top:14px">`;
   live.ex.forEach((e,ei)=>{
     const u=e.unit==="s";
-    h+=`<div class="card ex"><div><h3>${esc(e.name)}</h3><div class="row wrap tiny" style="margin-top:4px"><span class="chip">${esc(e.target)}</span>${e.rpe?`<span class="chip acc">RPE ${kg(e.rpe)}</span>`:""}<span class="chip">${esc(CATS[e.cat]?.n||"")}</span></div></div>`;
+    h+=`<div class="card ex"><div><h3>${esc(e.name)}</h3><div class="row wrap tiny" style="margin-top:4px"><span class="chip">${esc(e.target)}</span>${(()=>{const v=e.sets.filter(x=>x.kind==="work"&&x.rpeT!=null).map(x=>x.rpeT);return v.length?`<span class="chip acc">${v.every(x=>x===v[0])?"RPE "+v[0]:"RPE "+v.join(" · ")}</span>`:e.rpe?`<span class="chip acc">RPE ${Math.round(e.rpe)}</span>`:""})()}<span class="chip">${esc(CATS[e.cat]?.n||"")}</span></div></div>`;
     {const xo=findEx(e.exId)||{id:e.exId,name:e.name,prim:[],sec:[]};
      h+=`<div class="exmedia" data-act="exinfo" data-id="${esc(e.exId)}" role="button" tabindex="0" aria-label="Ver movimento e músculos de ${esc(e.name)}">${animHtml(xo,"md")}${muscleMap(xo.prim,xo.sec,false)}</div>`;}
     if(e.last) h+=`<div class="small muted">Última vez (${daysAgo(e.lastDate)}): <span class="num">${esc(e.last)}</span></div>`;
@@ -1209,7 +1222,7 @@ function renderSession(){
       h+=`<div class="set ${w?"work":"warmup"}"><span class="tag">${esc(s.label)}</span>
         <input inputmode="decimal" aria-label="Carga" data-f="kg" data-e="${ei}" data-s="${si}" value="${s.kg!=null?kg(s.kg):""}" placeholder="${u?"—":"kg"}">
         <input inputmode="numeric" aria-label="${u?"Segundos":"Repetições"}" data-f="reps" data-e="${ei}" data-s="${si}" value="${s.reps!=null?s.reps:""}" placeholder="${w&&s.target?s.target:""}">
-        ${w?`<input inputmode="decimal" aria-label="RPE" data-f="rpe" data-e="${ei}" data-s="${si}" value="${s.rpe!=null?kg(s.rpe):""}" placeholder="${e.rpe?kg(e.rpe):"RPE"}">`:`<span class="ro">leve</span>`}
+        ${w?`<input inputmode="decimal" aria-label="RPE" data-f="rpe" data-e="${ei}" data-s="${si}" value="${s.rpe!=null?kg(s.rpe):""}" placeholder="${s.rpeT!=null?s.rpeT:e.rpe?Math.round(e.rpe):"RPE"}">`:`<span class="ro">leve</span>`}
         <button class="chk ${s.done?"on":""}" data-act="chk" data-e="${ei}" data-s="${si}" aria-pressed="${s.done}" aria-label="Marcar série">✓</button></div>`;
     });
     h+=`</div><div class="row"><button class="btn sm ghost" data-act="addset" data-e="${ei}">+ Série</button><button class="btn sm ghost" data-act="rmset" data-e="${ei}">− Série</button></div></div>`;
@@ -1351,7 +1364,7 @@ document.addEventListener("click",async ev=>{
     const e=live.ex[+b.dataset.e], s=e.sets[+b.dataset.s];
     s.done=!s.done;
     if(s.done&&s.kind==="work"&&s.reps==null&&s.target&&e.cat!=="taf") s.reps=s.target;
-    if(s.done&&s.kind==="work"&&s.rpe==null&&e.rpe) s.rpe=e.rpe;
+    if(s.done&&s.kind==="work"&&s.rpe==null&&(s.rpeT!=null||e.rpe)) s.rpe=s.rpeT??Math.round(e.rpe);
     lsSet(LS_LIVE,live); renderSession();
     if(s.done){
       const workIdx=e.sets.filter(x=>x.kind==="work").indexOf(s);
@@ -1359,7 +1372,7 @@ document.addEventListener("click",async ev=>{
       startTimer(sec, s.kind==="warm"?"Aquecimento: descanso curto":e.rest?`Descanso ${fmt(sec)} (manual de TFM)`:`Descanso ${restLabel(sec)} (${s.reps||""} reps)`);
     }
   }
-  if(a==="addset"){const e=live.ex[+b.dataset.e];const w=e.sets.filter(s=>s.kind==="work");const l=w[w.length-1]||{};e.sets.push({kind:"work",label:"S"+(w.length+1),kg:l.kg??null,reps:null,rpe:null,done:false,target:l.target});lsSet(LS_LIVE,live);renderSession()}
+  if(a==="addset"){const e=live.ex[+b.dataset.e];const w=e.sets.filter(s=>s.kind==="work");const l=w[w.length-1]||{};e.sets.push({kind:"work",label:"S"+(w.length+1),kg:l.kg??null,reps:null,rpe:null,done:false,target:l.target,rpeT:l.rpeT??null});lsSet(LS_LIVE,live);renderSession()}
   if(a==="rmset"){const e=live.ex[+b.dataset.e];for(let i=e.sets.length-1;i>=0;i--){if(e.sets[i].kind==="work"&&!e.sets[i].done){e.sets.splice(i,1);break}}lsSet(LS_LIVE,live);renderSession()}
   if(a==="finish") await finishSession();
   if(a==="discard"){ openConfirm("Descartar este treino? O que foi marcado não será salvo.",()=>{live=null;lsDel(LS_LIVE);stopTimer();keepAwake(false);$("#session").classList.remove("open");render()}); }
