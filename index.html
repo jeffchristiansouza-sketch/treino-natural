@@ -150,6 +150,7 @@ details summary::-webkit-details-marker{display:none}
 .modal.open{display:flex}
 .modal .sheet{background:var(--surface);border:1px solid var(--line);border-radius:16px 16px 0 0;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;padding:16px 16px calc(20px + env(safe-area-inset-bottom));display:grid;gap:12px}
 .edit-ex{display:grid;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)}
+.card.locked{opacity:.55}
 .toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:30;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:14px;display:none}
 .toast.on{display:block}
 .tree{display:grid;gap:10px}
@@ -226,7 +227,7 @@ details summary::-webkit-details-marker{display:none}
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-const APP_VERSION="19 · 26/11/2026";
+const APP_VERSION="20 · 26/11/2026";
 /* ================= Regras do livro ================= */
 const CATS = {
   mil:{n:"Multiarticular inferior livre",rmin:3,rmax:8,rpe:[6,8],multi:true,region:"inf"},
@@ -275,37 +276,37 @@ function restLabel(sec){
 /* ================= Programa inicial (das suas telas) ================= */
 function E(id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,extra){return Object.assign({id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,unit:"reps",rpe:null,note:""},extra||{})}
 const SEED = {
-  v:9,
+  v:10,
   run:{test12:2900,testNote:"3,11 km em 12min51s, convertido para 12 min",tafDate:"2027-04-05",tafProv:true,birth:"",fcRep:52,fcMaxMed:197,third:"cc",tafs:[]},
-  settings:{level:"iniciante",phase:"livre",week:1,deload:false,ackFreq:true},
+  settings:{level:"iniciante",phase:"livre",week:1,deload:false,ackFreq:true,auto:true,deloadLog:[]},
   workouts:[
     {id:"A",name:"Empurrar",sub:"Peito · Ombros · Tríceps · Abdômen",exercises:[
-      E("supino-reto","Supino Reto (barra)","msl",4,9,9,40,2,"full",["peito"],["deltAnt","triceps"]),
-      E("supino-decl","Supino Declinado (barra)","msl",3,9,9,40,2,"full",["peito"],["deltAnt","triceps"]),
+      E("supino-reto","Supino Reto (barra)","msl",4,8,10,40,2,"full",["peito"],["deltAnt","triceps"]),
+      E("supino-decl","Supino Declinado (barra)","msl",3,8,10,40,2,"full",["peito"],["deltAnt","triceps"]),
       E("abd-decl","Abdominal Declinado","core",3,15,15,0,0,"0",["abd"],[]),
       E("cruc-polia","Crucifixo em pé (polia)","as",3,10,12,20,2.5,"2",["peito"],["deltAnt"],{note:"Reps subiram de 7–8 para 10–12: carga estimada, ajuste na 1ª sessão"}),
       E("abd-pernas","Abdominal com elevação das pernas","core",4,12,12,0,0,"0",["abd"],[]),
       E("elev-lat-front","Elevação Lateral e Frontal (halteres)","as",3,10,12,8,2,"2",["deltLat"],["deltAnt"],{note:"Reps subiram de 6–8 para 10–12: carga estimada"}),
-      E("tri-tras","Extensão de Tríceps por Trás (polia)","as",3,8,9,40,2.5,"2",["triceps"],[]),
+      E("tri-tras","Extensão de Tríceps por Trás (polia)","as",3,8,12,40,2.5,"2",["triceps"],[]),
       E("fb-a","Flexão de Braços (TAF)","taf",3,1,1,0,0,"0",["peito"],["triceps","deltAnt"],{taf:"fb",note:"Plano de barra e flexão do manual de TFM (Quadro 7-3)"})
     ]},
     {id:"B",name:"Puxar",sub:"Costas · Deltoide posterior · Bíceps · Abdômen",exercises:[
       E("fbf-b","Flexão na Barra Fixa (TAF)","taf",2,1,1,0,0,"0",["costas"],["biceps","deltPost"],{taf:"fbf",taperSkip:true,note:"Plano de barra e flexão do manual de TFM (Quadro 7-3)"}),
-      E("remada-baixa","Remada Baixa (polia)","msg",5,9,9,80,5,"full",["costas"],["biceps","deltPost"],{note:"Cotovelos junto ao corpo, puxando em direção ao quadril: mais ênfase no grande dorsal"}),
+      E("remada-baixa","Remada Baixa (polia)","msg",5,8,10,80,5,"full",["costas"],["biceps","deltPost"],{note:"Cotovelos junto ao corpo, puxando em direção ao quadril: mais ênfase no grande dorsal"}),
       E("cruc-inv","Crucifixo Inverso Sentado (máquina)","as",4,10,15,26,2.5,"2",["deltPost"],["costas"],{note:"Reps subiram de 7–11 para 10–15: carga estimada"}),
       E("face-pull","Face Pull (polia, corda)","as",3,12,15,15,2.5,"2",["deltPost"],["costas"],{note:"Novo: carga estimada, ajuste na 1ª sessão"}),
-      E("rosca-alt","Rosca Alternada (halteres)","as",3,8,9,20,2,"2",["biceps"],[]),
+      E("rosca-alt","Rosca Alternada (halteres)","as",3,8,12,20,2,"2",["biceps"],[]),
       E("rosca-martelo","Rosca Martelo (halteres)","as",3,8,12,14,2,"2",["biceps"],[],{note:"Reps subiram de 5–6 para 8–12: carga estimada"}),
       E("prancha-b","Prancha abdominal","core",3,45,45,0,0,"0",["abd"],[],{unit:"s"})
     ]},
     {id:"C",name:"Pernas",sub:"Quadríceps · Posterior · Glúteos · Panturrilha",exercises:[
-      E("agach-sumo","Agachamento Sumô (halteres)","mil",4,6,6,26,2,"full",["quad","glut"],["eret"]),
-      E("stiff","Levantamento Terra Pernas Rígidas (stiff)","mil",5,5,5,30,2,"full",["glut","isq","eret"],[]),
-      E("leg-press","Leg Press Inclinado","mig",3,9,10,100,10,"2",["quad","glut"],[]),
-      E("extensora","Extensão de Pernas (máquina)","ai",3,8,10,60,5,"2",["quad"],[],{note:"Pode fazer em super set com a flexora sentado para ganhar tempo (antagonistas)"}),
+      E("agach-sumo","Agachamento Sumô (halteres)","mil",4,5,7,26,2,"full",["quad","glut"],["eret"]),
+      E("stiff","Levantamento Terra Pernas Rígidas (stiff)","mil",5,5,6,30,2,"full",["glut","isq","eret"],[]),
+      E("leg-press","Leg Press Inclinado","mig",3,8,12,100,10,"2",["quad","glut"],[]),
+      E("extensora","Extensão de Pernas (máquina)","ai",3,10,15,60,5,"2",["quad"],[],{note:"Pode fazer em super set com a flexora sentado para ganhar tempo (antagonistas)"}),
       E("flexora-sent","Flexão de Pernas Sentado (máquina)","ai",5,10,12,25,2.5,"2",["isq"],[],{note:"Única flexora: o posterior trabalha mais alongado com o quadril dobrado"}),
       E("pant-sent","Elevação de Panturrilha Sentado (máquina)","ai",5,12,15,30,5,"2",["pant"],[],{rpe:9}),
-      E("pant-uni","Elevação de Panturrilha Unilateral","ai",5,12,12,0,0,"0",["pant"],[]),
+      E("pant-uni","Elevação de Panturrilha Unilateral","ai",5,12,15,0,0,"0",["pant"],[]),
       E("fb-c","Flexão de Braços (TAF)","taf",3,1,1,0,0,"0",["peito"],["triceps","deltAnt"],{taf:"fb",taperSkip:true,note:"No dia de perna, com a parte de cima descansada"})
     ]},
     {id:"D",name:"Ombros, braços e dorsal",sub:"Deltoides · Costas · Bíceps · Tríceps",exercises:[
@@ -378,6 +379,13 @@ function migrate(p){
       w.exercises.forEach(e=>{if(e.id==="remada-baixa"){if(e.sets<5)e.sets=5;if(!e.note)e.note="Cotovelos junto ao corpo, puxando em direção ao quadril: mais ênfase no grande dorsal"}});
     });
     p.v=9; migrated=true;
+  }
+  if(p.v===9){
+    // faixas de repetições para a dupla progressão do livro (só onde a faixa antiga não foi editada) e piloto automático ligado
+    const R={"supino-reto":[[9,9],[8,10]],"supino-decl":[[9,9],[8,10]],"tri-tras":[[8,9],[8,12]],"remada-baixa":[[9,9],[8,10]],"rosca-alt":[[8,9],[8,12]],"agach-sumo":[[6,6],[5,7]],"stiff":[[5,5],[5,6]],"leg-press":[[9,10],[8,12]],"extensora":[[8,10],[10,15]],"pant-uni":[[12,12],[12,15]]};
+    p.workouts.forEach(w=>w.exercises.forEach(e=>{const r=R[e.id];if(r&&e.rmin===r[0][0]&&e.rmax===r[0][1]){e.rmin=r[1][0];e.rmax=r[1][1]}}));
+    p.settings=Object.assign({auto:true,deloadLog:[]},p.settings||{}); p.settings.auto=true;
+    p.v=10; migrated=true;
   }  // fartlek vira a 4ª corrida, opcional
   return p;
 }
@@ -446,10 +454,11 @@ function roundTo(n,step){step=step||1;return Math.round(n/step)*step}
 function dstr(iso){const d=new Date(iso);return d.toLocaleDateString("pt-BR",{weekday:"short",day:"2-digit",month:"short"})}
 function daysAgo(iso){const d=Math.floor((Date.now()-new Date(iso))/864e5);return d===0?"hoje":d===1?"ontem":d+" dias atrás"}
 function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("on");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("on"),2600)}
-function repsTxt(ex){if(ex.cat==="taf")return "máx";const u=ex.unit==="s"?" s":"";return ex.rmin===ex.rmax?ex.rmin+u:ex.rmin+"–"+ex.rmax+u}
+function repsTxt(ex){if(ex.cat==="taf")return "máx";{const m=phaseMods(ex);if(m.amrap)return "máx";if(m.reps)return String(m.reps[0])}const u=ex.unit==="s"?" s":"";return ex.rmin===ex.rmax?ex.rmin+u:ex.rmin+"–"+ex.rmax+u}
 function phase(){return PHASES.find(p=>p.id===program.settings.phase)||PHASES[0]}
 function targetRpe(ex){
   if(ex.cat==="taf") return tafPlan(ex).real?10:9;
+  {const m=phaseMods(ex); if(m.rpeFlat) return m.rpeFlat;}
   if(ex.rpe) return ex.rpe;
   const c=CATS[ex.cat]; const p=phase().rpe;
   if(!c||!c.rpe) return null;
@@ -477,7 +486,7 @@ function tafPlan(ex){
 }
 function tafSuggest(ex,h){
   const p=tafPlan(ex), st=program.settings, c=cycle(); let sets=p.sets;
-  if(st.deload&&sets) sets=Math.max(1,Math.ceil(sets/2));
+  if(isDeload()&&deloadWhy()!=="semana do TAF"&&sets) sets=Math.max(1,Math.ceil(sets/2));
   const res={load:0,sets,reps:null,text:"",stall:false,last:h[0]||null};
   const nm=ex.taf==="fbf"?"barra":"flexão";
   if(!sets){res.text=`Nas 2 semanas antes do TAF, o manual reduz barra e flexão para 2 vezes por semana: hoje não tem ${nm}.`;return res}
@@ -488,7 +497,7 @@ function tafSuggest(ex,h){
 }
 function rpeSets(ex,n){
   const T=targetRpe(ex); if(T==null||!n) return null;
-  if(ex.cat==="taf"||n===1) return Array(n).fill(Math.round(T));
+  if(ex.cat==="taf"||n===1||phaseMods(ex).rpeFlat) return Array(n).fill(Math.round(T));
   const c=CATS[ex.cat]||{}, lo=c.rpe?c.rpe[0]:6, hi=Math.max(c.rpe?c.rpe[1]:10, ex.rpe||0);
   const v=Array.from({length:n},(_,i)=>Math.min(hi,Math.max(lo,Math.round(T-1+2*i/(n-1)))));
   const S=Math.round(T*n); let sum=v.reduce((a,b)=>a+b,0), g=0;
@@ -502,7 +511,7 @@ function suggest(ex){
   const st=program.settings, h=historyFor(ex.id).filter(x=>!x.deload);
   if(ex.cat==="taf") return tafSuggest(ex,h);
   const res={load:ex.load,sets:eff(ex),reps:ex.rmax,text:"",stall:false,last:h[0]||null};
-  if(st.deload){
+  if(isDeload()){
     if(st.level==="iniciante"){res.load=ex.load?roundTo(ex.load*0.9,ex.inc||1):ex.load;res.text="Deload (iniciante): carga −10%, mesmas séries e repetições. Depois volte à carga anterior.";}
     else{res.sets=Math.max(1,Math.ceil(eff(ex)/2));res.text="Deload (intermediário): mesma carga, metade das séries.";}
     return res;
@@ -526,6 +535,11 @@ function suggest(ex){
     res.text=overRpe?`Última vez o RPE médio (${kg(Math.round(lastAvg*10)/10)}) passou do alvo. Mantenha ${kg(topKg)} kg e foque em técnica.`
       :`Mantenha ${kg(topKg)} kg e tente ${res.reps} reps na top set (superar a top set é o principal).`;
   }
+  {const m=phaseMods(ex);
+    if(m.load){res.load=m.load}
+    if(m.reps){res.reps=m.reps[1]}
+    if(m.amrap){res.reps=null}
+    if(m.note){res.text=(m.load||m.reps||m.amrap)?m.note:m.note+" "+res.text}}
   const justAdded=ex.extra>0&&recentAdd(ex,8);
   if(justAdded&&res.stall) res.text+=" · Travou, mas está se recuperando bem: +1 série nesta semana, como no fluxograma do livro. Mantenha a carga e busque as reps em todas as séries.";
   else if(justAdded) res.text+=" · +1 série nesta semana (fase de acúmulo de volume).";
@@ -537,18 +551,130 @@ function suggest(ex){
   return res;
 }
 
+/* ================= Piloto automático (evolução do livro) ================= */
+// Macrociclo do livro em semanas (mesociclo = 4 semanas). Semanas de deload pausam o calendário.
+const MACRO=[["acum",8],["trans",4],["intens",4],["teste",2],["hr",16],["hip",8]];
+function thisMon(){return ymd(mondayOf(new Date()))}
+function autoOn(){return program.settings.auto!==false}
+function isDeload(){const st=program.settings;if(st.deload)return true;if(!autoOn())return false;return st.deloadWeek===thisMon()||cycle().kind==="taf"}
+function deloadWhy(){const st=program.settings;if(st.deload)return "manual";if(st.deloadWeek===thisMon())return "progressão parada";if(autoOn()&&cycle().kind==="taf")return "semana do TAF";return ""}
+function trackedStall(){
+  let tracked=0,stalled=0;const names=[];
+  for(const w of program.workouts)for(const ex of w.exercises){
+    if(["core","prep","taf"].includes(ex.cat)||ex.unit==="s")continue;
+    const h=historyFor(ex.id).filter(x=>!x.deload); if(h.length<3)continue; tracked++;
+    if(h[0].best<=h[2].best*1.005&&h[1].best<=h[2].best*1.005){stalled++;names.push(ex.name)}
+  }
+  return {tracked,stalled,names};
+}
+function macroPos(){
+  const st=program.settings; if(!st.macroStart) return null;
+  const mon=thisMon(); let weeks=Math.floor((dLocal(mon)-dLocal(st.macroStart))/(7*864e5));
+  let dl=(st.deloadLog||[]).filter(d=>d>=st.macroStart&&d<mon).length; if(st.deloadWeek&&st.deloadWeek>=st.macroStart&&st.deloadWeek<=mon) dl++;
+  weeks=Math.max(0,weeks-dl);
+  const total=MACRO.reduce((a,x)=>a+x[1],0), loop=Math.floor(weeks/total); weeks%=total;
+  let acc=0; for(const [id,len] of MACRO){ if(weeks<acc+len) return {phase:id,week:weeks-acc+1,len,loop,leftWeeks:acc+len-weeks}; acc+=len }
+  return null;
+}
+function autoTick(){
+  const st=program.settings; if(!autoOn()||!program.workouts) return false;
+  const mon=thisMon(); let ch=false; const notes=[];
+  // 1. fim do deload automático
+  if(st.deloadWeek&&st.deloadWeek<mon){
+    st.deloadLog=[...(st.deloadLog||[]),st.deloadWeek].slice(-12); st.deloadWeek=null; resetExtras(); ch=true;
+    notes.push("Semana de deload concluída. A carga volta à de antes do deload e a progressão continua de onde parou; séries extras voltaram ao número base, como o livro manda.");
+    const L=st.deloadLog;
+    if(st.phase==="livre"&&L.length>=2&&(dLocal(L[L.length-1])-dLocal(L[L.length-2]))<=8*7*864e5){
+      if(st.level==="iniciante") st.level="intermediário";
+      st.macroStart=mon; st.phase="acum"; st.week=1;
+      notes.push("A progressão linear travou duas vezes em menos de 8 semanas. Pelo livro, é hora da periodização em blocos: nível intermediário e início da fase de Acumulação (8 semanas). O deload passa a ser de metade das séries, mantendo a carga.");
+    }
+  }
+  // 2. progressão parada há 2 semanas na maior parte dos exercícios: deload na semana seguinte
+  if(!st.deloadWeek&&!isDeload()){
+    const last=(st.deloadLog||[]).slice(-1)[0], recent=last&&(dLocal(mon)-dLocal(last))<3*7*864e5;
+    const t=trackedStall();
+    if(!recent&&t.tracked>=4&&t.stalled>=Math.max(3,Math.ceil(t.tracked*.4))){
+      const nx=dLocal(mon); nx.setDate(nx.getDate()+7);
+      if(cycle(nx).kind!=="taf"){ st.deloadWeek=ymd(nx); ch=true;
+        notes.push(`A progressão parou há 2 semanas em ${t.stalled} de ${t.tracked} exercícios (${t.names.slice(0,4).join(", ")}${t.names.length>4?"…":""}). Deload agendado para a semana de ${fmtD(nx)}: ${st.level==="iniciante"?"carga 10% menor, mesmas séries e repetições":"mesma carga, metade das séries"}.`); }
+    }
+  }
+  // 3. fase do macrociclo pelo calendário
+  if(st.macroStart){
+    const p=macroPos();
+    if(p&&(p.phase!==st.phase||p.week!==st.week)){
+      const prev=st.phase; st.phase=p.phase; st.week=p.week; ch=true;
+      if(prev!==p.phase){ if(!(prev==="acum"&&p.phase==="trans")) resetExtras(); const P=PHASES.find(x=>x.id===p.phase); notes.push(`Nova fase: ${P.n} (${P.dur}). ${P.t}`) }
+    }
+  }
+  if(notes.length) st.notice={date:new Date().toISOString(),notes};
+  return ch;
+}
+// Ajustes de cada fase do macrociclo sobre séries, repetições, carga, RPE e técnicas
+function bestE1rm(ex){const h=historyFor(ex.id).filter(x=>!x.deload).slice(0,6);return h.length?Math.max(...h.map(x=>x.best)):null}
+function techTarget(ex,w){
+  if(!w||["msl","mil","core","prep","taf"].includes(ex.cat)||!(ex.load>0)) return false;
+  return (ex.prim||[]).some(m=>{const c=w.exercises.filter(e=>!["msl","mil","core","prep","taf"].includes(e.cat)&&e.load>0&&(e.prim||[]).includes(m));return c.length&&c[c.length-1].id===ex.id});
+}
+const ANTAG={biceps:"triceps",triceps:"biceps",quad:"isq",isq:"quad",peito:"costas",costas:"peito"};
+function antagonist(ex,w){
+  if(!w||["msl","mil","core","prep","taf"].includes(ex.cat)) return null;
+  const a=ANTAG[(ex.prim||[])[0]]; if(!a) return null;
+  return w.exercises.find(e=>e.id!==ex.id&&!["msl","mil","core","prep","taf"].includes(e.cat)&&(e.prim||[])[0]===a)||null;
+}
+function phaseMods(ex,w){
+  const st=program.settings, ph=st.phase, wk=st.week||1, m={};
+  if(ph==="livre"||["core","prep","taf"].includes(ex.cat)||ex.unit==="s") return m;
+  w=w||workoutOf(ex.id); const multi=!!(CATS[ex.cat]&&CATS[ex.cat].multi);
+  if(ph==="intens"&&!multi){m.sets=Math.max(2,ex.sets-1);m.note="Intensificação: menos séries nos isoladores; o foco são os multiarticulares pesados (70% do volume)."}
+  if(ph==="teste"){
+    if(wk===1){m.sets=Math.max(2,ex.sets-1);m.note="Teste, semana 1: menos séries, mesma faixa de repetições e esforço moderado."}
+    else{const main=w&&w.exercises.find(e=>CATS[e.cat]&&CATS[e.cat].multi&&e.cat!=="taf"&&e.load>0);
+      if(main&&main.id===ex.id){m.sets=1;m.amrap=true;m.rpeFlat=10;m.note="Teste, semana 2: depois do aquecimento, 1 série de máximas repetições (AMRAP) com a carga atual e boa técnica."}
+      else{m.sets=Math.max(1,Math.ceil(ex.sets/2));m.note="Teste, semana 2: metade das séries neste exercício."}}
+  }
+  if(ph==="hr"){
+    const meso=Math.ceil(wk/4), mw=((wk-1)%4)+1;
+    if(meso===1&&multi&&ex.load>0){const sc=[[8,2],[6,3],[5,4],[4,5]][mw-1],b=bestE1rm(ex);m.sets=sc[0];m.reps=[sc[1],sc[1]];m.rpeFlat=7;if(b)m.load=roundTo(b*.8,ex.inc>=2?ex.inc:1);m.note=`Hipertrofia e resistência, mesociclo 1: ${sc[0]} séries de ${sc[1]} a 80% do seu máximo estimado${m.load?` (${kg(m.load)} kg)`:""}.`}
+    if(meso===2&&multi) m.note="Hipertrofia e resistência, mesociclo 2: mesma carga e uma repetição a mais na top set a cada semana.";
+    if(meso===3&&techTarget(ex,w)){m.tech="drop";m.note="Hipertrofia e resistência, mesociclo 3: na última série, drop set. Perto da falha, reduza a carga em 20 a 30% e continue até perto da falha."}
+    if(meso===4){const pr=antagonist(ex,w);if(pr){m.tech="super";m.note=`Hipertrofia e resistência, mesociclo 4: super set com ${pr.name}, sem descanso entre os dois.`}}
+  }
+  if(ph==="hip"){
+    const meso=Math.ceil(wk/4);
+    if(meso===1&&techTarget(ex,w)){m.tech="falsa";m.rpeFlat=10;m.note="Hipertrofia, mesociclo 1: falsa pirâmide. Mesma carga em todas as séries, todas até a falha técnica; as repetições vão caindo e o descanso não aumenta."}
+    if(meso===2) m.note="Hipertrofia, mesociclo 2: pico de volume, com o esforço perto do máximo na maior parte das séries.";
+  }
+  return m;
+}
+function pilotHtml(){
+  const st=program.settings, P=phase(), mp=macroPos(), t=trackedStall(), lines=[];
+  if(st.phase==="livre") lines.push(["ok",`Progressão linear: carga e repetições sobem a cada treino. Quando a progressão travar duas vezes em menos de 8 semanas, o app passa sozinho para a periodização em blocos do livro.`]);
+  else if(mp){const i=MACRO.findIndex(x=>x[0]===mp.phase),nx=MACRO[(i+1)%MACRO.length],d=dLocal(thisMon());d.setDate(d.getDate()+7*mp.leftWeeks);
+    lines.push(["ok",`${P.n}, semana ${mp.week} de ${mp.len}. Próxima fase: ${PHASES.find(x=>x.id===nx[0]).n}, a partir de ${fmtD(d)}.`])}
+  const why=deloadWhy();
+  if(why) lines.push(["warn",`Semana de deload (${why}): ${st.level==="iniciante"?"carga 10% menor, mesmas séries e repetições":"mesma carga, metade das séries"}.`]);
+  else if(st.deloadWeek) lines.push(["warn",`Deload agendado para a semana de ${fmtD(dLocal(st.deloadWeek))}.`]);
+  else lines.push(["info",`Deload: entra sozinho quando a progressão parar por 2 semanas na maior parte dos exercícios${t.tracked?` (hoje: ${t.stalled} de ${t.tracked} parados)`:""}, e na semana do TAF.`]);
+  lines.push(["info",`Séries: +1 quando um exercício trava mas você recupera bem; nas fases de volume, +1 por semana. RPE alvo por série conforme a fase (agora: RPE médio ${Number.isInteger(P.rpe)?P.rpe:Math.floor(P.rpe)+" a "+Math.ceil(P.rpe)}).`]);
+  return `<div class="card next"><div class="row between"><div><div class="label">Piloto automático</div><h2 style="font-size:26px">${esc(P.n)}${st.phase!=="livre"?` · semana ${st.week}`:""}</h2></div>
+    <button class="btn sm ${autoOn()?"primary":""}" data-act="autotoggle" aria-pressed="${autoOn()}">${autoOn()?"Ligado":"Desligado"}</button></div>
+    ${autoOn()?`<ul class="alerts" style="margin-top:10px">${lines.map(([k,x])=>`<li class="${k}">${esc(x)}</li>`).join("")}</ul><p class="tiny muted" style="margin:8px 0 0">Com o piloto ligado, nível, fase e deload mudam sozinhos. Você só registra o que fez.</p>`:`<p class="small muted" style="margin:6px 0 0">Desligado: nível, fase e deload ficam por sua conta, nos controles abaixo.</p>`}</div>`;
+}
+
 /* ================= Séries automáticas (fluxograma do livro) ================= */
 const VOL_PHASES=["acum","hr","hip"];
 const MAX_EXTRA=2;
 function capFor(level){return level==="avançado"?20:level==="intermediário"?17:14}
-function eff(ex){if(ex.cat==="taf")return tafPlan(ex).sets;return ex.sets+(ex.extra||0)}
+function eff(ex){if(ex.cat==="taf")return tafPlan(ex).sets;const m=phaseMods(ex);return m.sets!=null?m.sets:ex.sets+(ex.extra||0)}
 function recentAdd(ex,days){return !!ex.extraAt && (Date.now()-new Date(ex.extraAt))<days*864e5}
 // Chamada ao concluir um treino: soma 1 série onde o livro manda aumentar o volume
 function autoSets(s){
   const st=program.settings; if(st.autoSets===false||s.deload) return [];
   const added=[], volPhase=VOL_PHASES.includes(st.phase), cap=capFor(st.level);
   for(const e of s.ex){
-    const ex=findEx(e.exId); if(!ex||ex.cat==="core"||ex.cat==="prep"||ex.cat==="taf"||ex.unit==="s") continue;
+    const ex=findEx(e.exId); if(!ex||ex.cat==="core"||ex.cat==="prep"||ex.cat==="taf"||ex.unit==="s"||phaseMods(ex).sets!=null) continue;
     if((ex.extra||0)>=MAX_EXTRA || recentAdd(ex,6)) continue;
     const work=e.sets.filter(x=>x.done&&x.kind==="work"&&x.reps>0);
     if(work.length<eff(ex)) continue;                                   // não completou as séries atuais
@@ -571,7 +697,7 @@ function weeklyVolume(){
   const freq={};Object.keys(MUSCLES).forEach(k=>freq[k]=new Set());
   for(const w of program.workouts)for(const ex of w.exercises){
     if(ex.cat==="prep") continue;
-    const sets=program.settings.deload&&program.settings.level!=="iniciante"?Math.ceil(eff(ex)/2):eff(ex);
+    const sets=isDeload()&&program.settings.level!=="iniciante"?Math.ceil(eff(ex)/2):eff(ex);
     (ex.prim||[]).forEach(m=>{v[m]+=sets;freq[m].add(w.id)});
     (ex.sec||[]).forEach(m=>{v[m]+=sets/2;freq[m].add(w.id)});
   }
@@ -1037,6 +1163,7 @@ function endRun(){
 /* ================= Render ================= */
 let tab = lsGet(LS_TAB)||"treinos";
 function render(){
+  if(autoTick()) saveProgram();
   renderHeader();
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
   const m=$("#main");
@@ -1050,7 +1177,7 @@ function render(){
 function renderHeader(){
   const st=program.settings, p=phase();
   let h=`<span class="pill acc">${esc(p.n)}${st.phase!=="livre"?" · sem "+st.week:""}</span>`;
-  if(st.deload) h+=`<span class="pill warn">Deload</span>`;
+  if(isDeload()) h+=`<span class="pill warn">Deload</span>`;
   h+=`<span class="pill" title="Dados salvos neste aparelho">Offline</span>`;
   $("#hdrPills").innerHTML=h;
 }
@@ -1073,7 +1200,8 @@ function viewTreinos(){
   const nxIdx=ws.indexOf(nx), outOfOrder=!allDone&&ws.some((w,i)=>i>nxIdx&&done.has(w.id));
   const lastWeek=weekDone(1), lastMissing=!weekCount&&lastWeek.size?ws.filter(w=>!lastWeek.has(w.id)):[];
   let h=`<section class="view">`;
-  {const c=cycle(); if(c.kind==="taf"&&!st.deload) h+=`<div class="card"><div class="label">Semana do TAF</div><p class="small" style="margin:4px 0 10px">Para chegar descansado na prova, vale ativar a semana de deload da musculação.</p><button class="btn sm primary" data-act="deload">Ativar deload</button></div>`;}
+  if(st.notice&&autoOn()) h+=`<div class="card next"><div class="label">Piloto automático</div>${st.notice.notes.map(n=>`<p class="small" style="margin:6px 0">${esc(n)}</p>`).join("")}<button class="btn sm" data-act="noticeok">Entendi</button></div>`;
+  {const c=cycle(); if(c.kind==="taf"&&!isDeload()) h+=`<div class="card"><div class="label">Semana do TAF</div><p class="small" style="margin:4px 0 10px">Para chegar descansado na prova, vale ativar a semana de deload da musculação.</p><button class="btn sm primary" data-act="deload">Ativar deload</button></div>`;}
   if(live){
     const w=program.workouts.find(w=>w.id===live.wid);
     h+=`<div class="card next"><div class="label">Em andamento</div><h2>Treino ${esc(live.wid)} · ${esc(w?w.name:"")}</h2><div class="row" style="margin-top:10px"><button class="btn primary" data-act="resume">Continuar treino</button></div></div>`;
@@ -1122,10 +1250,10 @@ function viewVolume(){
 let treeStep=0;
 function viewPlano(){
   const st=program.settings, p=phase();
-  let h=`<section class="view"><div class="card"><div class="label">Nível</div>
+  let h=`<section class="view">${pilotHtml()}<div class="card ${autoOn()?"locked":""}"><div class="label">Nível</div>
     <div class="seg" style="margin:8px 0 4px">${["iniciante","intermediário","avançado"].map(l=>`<button data-act="level" data-v="${l}" aria-pressed="${st.level===l}">${l[0].toUpperCase()+l.slice(1)}</button>`).join("")}</div>
     <p class="tiny muted" style="margin:6px 0 0">Muda o deload: iniciante reduz 10% da carga; intermediário e avançado reduzem 50% do volume.</p></div>
-    <div class="card"><div class="row between"><div><div class="label">Semana de deload</div><div class="small muted">Use ao travar por 2 semanas seguidas.</div></div>
+    <div class="card ${autoOn()?"locked":""}"><div class="row between"><div><div class="label">Semana de deload</div><div class="small muted">Use ao travar por 2 semanas seguidas.</div></div>
     <button class="btn ${st.deload?"primary":""}" data-act="deload" aria-pressed="${st.deload}">${st.deload?"Ativo":"Ativar"}</button></div></div>
     <div class="card"><div class="row between"><div><div class="label">Aquecimento inteligente</div><div class="small muted">Menos aquecimento quando o músculo já trabalhou no mesmo treino.</div></div>
     <button class="btn ${st.warmSmart!==false?"primary":""}" data-act="warmsmart" aria-pressed="${st.warmSmart!==false}">${st.warmSmart!==false?"Ligado":"Desligado"}</button></div>
@@ -1133,7 +1261,7 @@ function viewPlano(){
     <div class="card"><div class="row between"><div><div class="label">Séries automáticas</div><div class="small muted">Soma 1 série quando o livro manda aumentar o volume.</div></div>
     <button class="btn ${st.autoSets!==false?"primary":""}" data-act="autosets" aria-pressed="${st.autoSets!==false}">${st.autoSets!==false?"Ligado":"Desligado"}</button></div>
     <p class="tiny muted" style="margin:8px 0 0">${VOL_PHASES.includes(st.phase)?"Nesta fase de volume: +1 série por semana em cada exercício que você completou sem passar do RPE alvo.":"Nesta fase: +1 série só quando o exercício trava 2 sessões seguidas, mas você completou todas as séries sem passar do RPE alvo (sinal de que está se recuperando bem). Se passou do RPE, o app sugere deload."} Limites: no máximo +${MAX_EXTRA} séries por exercício, 1 por semana, e até ${capFor(st.level)} séries por grupo muscular na semana (nível ${st.level}). As séries extras voltam a zero ao terminar um deload ou trocar de fase, como no livro.${(()=>{const n=program.workouts.reduce((a,w)=>a+w.exercises.filter(e=>e.extra).length,0);return n?` Hoje há ${n} exercício(s) com séries extras.`:""})()}</p></div>
-    <div class="card"><div class="row between"><h2 style="font-size:22px">Fase atual</h2>
+    <div class="card ${autoOn()?"locked":""}"><div class="row between"><h2 style="font-size:22px">Fase atual</h2>
     ${st.phase!=="livre"?`<div class="row"><button class="btn sm" data-act="wk" data-d="-1" aria-label="Semana anterior">−</button><span class="num">Semana ${st.week}</span><button class="btn sm" data-act="wk" data-d="1" aria-label="Próxima semana">+</button></div>`:""}</div>
     <p class="small" style="margin:8px 0 12px">${esc(p.t)}</p><div style="display:grid;gap:8px">`;
   PHASES.forEach((ph,i)=>{
@@ -1202,9 +1330,9 @@ function drawChart(){
 /* ================= Sessão em andamento ================= */
 function startSession(wid){
   const w=program.workouts.find(w=>w.id===wid); if(!w) return;
-  live={id:"s"+Date.now(),wid:w.id,wname:w.name,start:Date.now(),deload:program.settings.deload,phase:program.settings.phase,note:"",ex:w.exercises.map(ex=>{
+  live={id:"s"+Date.now(),wid:w.id,wname:w.name,start:Date.now(),deload:isDeload(),phase:program.settings.phase,note:"",ex:w.exercises.map(ex=>{
     const sg=suggest(ex); const sets=[];
-    if(!program.settings.deload && sg.load>0) for(const [pct,r,lab] of warmPlan(ex,w).sets) sets.push({kind:"warm",label:lab,kg:roundTo(sg.load*pct,ex.inc>=2?2:1),reps:r,rpe:null,done:false});
+    if(!isDeload() && sg.load>0) for(const [pct,r,lab] of warmPlan(ex,w).sets) sets.push({kind:"warm",label:lab,kg:roundTo(sg.load*pct,ex.inc>=2?2:1),reps:r,rpe:null,done:false});
     const rs=rpeSets(ex,sg.sets)||[];
     for(let i=0;i<sg.sets;i++) sets.push({kind:"work",label:i===0?"Top":"S"+(i+1),kg:sg.load||null,reps:null,rpe:null,done:false,target:sg.reps,rpeT:rs[i]??null});
     return {exId:ex.id,name:ex.name,cat:ex.cat,unit:ex.unit,sets,sugg:sg.text,stall:sg.stall,last:sg.last?sg.last.sets.map(s=>(s.kg?kg(s.kg)+"×":"")+s.reps+(s.rpe!=null?"@"+kg(s.rpe):"")).join(" · "):null,lastDate:sg.last?sg.last.date:null,target:`${sg.sets}×${repsTxt(ex)}`,rpe:targetRpe(ex),rest:ex.cat==="taf"?tafPlan(ex).rest:null};
@@ -1389,6 +1517,9 @@ document.addEventListener("click",async ev=>{
   if(a==="discard"){ openConfirm("Descartar este treino? O que foi marcado não será salvo.",()=>{live=null;lsDel(LS_LIVE);stopTimer();keepAwake(false);$("#session").classList.remove("open");render()}); }
   if(a==="sset"){const k=b.dataset.k;st[k]=k==="warn10"?!st[k]:st[k]===false;saveProgram();render()}
   if(a==="testsnd"){unlockAudio();playAlarm();vibrate([300,120,300])}
+  if(["level","deload","phase","wk"].includes(a)&&autoOn()){toast("O piloto automático está ligado. Desligue em Plano para mudar à mão.");return}
+  if(a==="autotoggle"){st.auto=!autoOn();if(st.auto){st.deload=false}saveProgram();render();toast(st.auto?"Piloto automático ligado.":"Piloto automático desligado.")}
+  if(a==="noticeok"){st.notice=null;saveProgram();render()}
   if(a==="level"){st.level=b.dataset.v;saveProgram();render()}
   if(a==="deload"){const was=st.deload;st.deload=!st.deload;if(was&&resetExtras())toast("Deload encerrado: séries extras voltaram ao número base.");saveProgram();render()}
   if(a==="runstart"){ startRun(b.dataset.k); }
