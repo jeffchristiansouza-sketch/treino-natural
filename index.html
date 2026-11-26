@@ -226,6 +226,7 @@ details summary::-webkit-details-marker{display:none}
 <div class="toast" id="toast" role="status"></div>
 
 <script>
+const APP_VERSION="18 · 26/11/2026";
 /* ================= Regras do livro ================= */
 const CATS = {
   mil:{n:"Multiarticular inferior livre",rmin:3,rmax:8,rpe:[6,8],multi:true,region:"inf"},
@@ -1140,7 +1141,7 @@ function viewPlano(){
     <p class="small muted" style="margin:0 0 10px">Bipes nos 3 últimos segundos e um alarme quando o descanso acaba. Durante o treino a tela fica acesa para o aviso tocar na hora.</p>
     <div class="seg"><button data-act="sset" data-k="sound" aria-pressed="${st.sound!==false}">Som</button><button data-act="sset" data-k="vib" aria-pressed="${st.vib!==false}">Vibrar</button><button data-act="sset" data-k="warn10" aria-pressed="${!!st.warn10}">Aviso 10 s antes</button><button data-act="testsnd">Testar som</button></div>
     <p class="tiny muted" style="margin:8px 0 0">No iPhone, deixe o botão de silencioso desligado e o volume alto; o iPhone não vibra por aplicativos web.</p></div>
-    <div class="card"><div class="label">Dados</div><p class="small muted" style="margin:4px 0 10px">Treinos e histórico ficam salvos só neste aparelho. Baixe um backup de vez em quando: se você desinstalar o app ou limpar os dados do navegador, o histórico se perde.</p>
+    <div class="card"><div class="row between"><div class="label">Dados</div><span class="tiny muted">Versão ${APP_VERSION}</span></div><p class="small muted" style="margin:4px 0 10px">Treinos e histórico ficam salvos só neste aparelho. Baixe um backup de vez em quando: se você desinstalar o app ou limpar os dados do navegador, o histórico se perde.</p>
     <div class="row wrap"><button class="btn sm" data-act="download">Baixar backup</button><button class="btn sm" data-act="export">Copiar backup</button><button class="btn sm" data-act="import">Restaurar backup</button><input type="file" id="bkFile" accept=".json,application/json" hidden><button class="btn sm danger" data-act="reset">Voltar ao programa inicial</button></div></div></section>`;
   return h;
 }
@@ -1204,6 +1205,9 @@ function startSession(wid){
   lsSet(LS_LIVE,live); renderSession(); $("#session").classList.add("open"); $("#session").scrollTop=0; keepAwake(true);
 }
 function renderSession(){
+  // treino iniciado numa versão anterior: completa o RPE alvo de cada série
+  if(live) live.ex.forEach(e=>{const ws=e.sets.filter(x=>x.kind==="work");
+    if(ws.length&&ws.some(x=>x.rpeT===undefined)){const ex=findEx(e.exId),v=ex?rpeSets(ex,ws.length):null;ws.forEach((x,i)=>x.rpeT=v?v[i]:null)}});
   if(!live){ $("#session").classList.remove("open"); return; }
   const done=live.ex.reduce((a,e)=>a+e.sets.filter(s=>s.kind==="work"&&s.done).length,0);
   const tot=live.ex.reduce((a,e)=>a+e.sets.filter(s=>s.kind==="work").length,0);
