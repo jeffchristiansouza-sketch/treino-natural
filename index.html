@@ -226,7 +226,7 @@ details summary::-webkit-details-marker{display:none}
 <div class="toast" id="toast" role="status"></div>
 
 <script>
-const APP_VERSION="18 · 26/11/2026";
+const APP_VERSION="19 · 26/11/2026";
 /* ================= Regras do livro ================= */
 const CATS = {
   mil:{n:"Multiarticular inferior livre",rmin:3,rmax:8,rpe:[6,8],multi:true,region:"inf"},
@@ -275,7 +275,7 @@ function restLabel(sec){
 /* ================= Programa inicial (das suas telas) ================= */
 function E(id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,extra){return Object.assign({id,name,cat,sets,rmin,rmax,load,inc,warm,prim,sec,unit:"reps",rpe:null,note:""},extra||{})}
 const SEED = {
-  v:8,
+  v:9,
   run:{test12:2900,testNote:"3,11 km em 12min51s, convertido para 12 min",tafDate:"2027-04-05",tafProv:true,birth:"",fcRep:52,fcMaxMed:197,third:"cc",tafs:[]},
   settings:{level:"iniciante",phase:"livre",week:1,deload:false,ackFreq:true},
   workouts:[
@@ -291,8 +291,7 @@ const SEED = {
     ]},
     {id:"B",name:"Puxar",sub:"Costas · Deltoide posterior · Bíceps · Abdômen",exercises:[
       E("fbf-b","Flexão na Barra Fixa (TAF)","taf",2,1,1,0,0,"0",["costas"],["biceps","deltPost"],{taf:"fbf",taperSkip:true,note:"Plano de barra e flexão do manual de TFM (Quadro 7-3)"}),
-      E("remada-baixa","Remada Baixa (polia)","msg",3,9,9,80,5,"full",["costas"],["biceps","deltPost"]),
-      E("remada-t","Remada T (máquina)","msg",3,8,8,40,2.5,"2",["costas"],["biceps","deltPost"]),
+      E("remada-baixa","Remada Baixa (polia)","msg",5,9,9,80,5,"full",["costas"],["biceps","deltPost"],{note:"Cotovelos junto ao corpo, puxando em direção ao quadril: mais ênfase no grande dorsal"}),
       E("cruc-inv","Crucifixo Inverso Sentado (máquina)","as",4,10,15,26,2.5,"2",["deltPost"],["costas"],{note:"Reps subiram de 7–11 para 10–15: carga estimada"}),
       E("face-pull","Face Pull (polia, corda)","as",3,12,15,15,2.5,"2",["deltPost"],["costas"],{note:"Novo: carga estimada, ajuste na 1ª sessão"}),
       E("rosca-alt","Rosca Alternada (halteres)","as",3,8,9,20,2,"2",["biceps"],[]),
@@ -371,6 +370,14 @@ function migrate(p){
       });
     });
     p.v=8; migrated=true;
+  }
+  if(p.v===8){
+    // Treino B: sai a Remada T; a Remada Baixa passa para 5 séries (costas continuam com 13,5 séries por semana)
+    p.workouts.forEach(w=>{
+      const i=w.exercises.findIndex(e=>e.id==="remada-t"); if(i>=0) w.exercises.splice(i,1);
+      w.exercises.forEach(e=>{if(e.id==="remada-baixa"){if(e.sets<5)e.sets=5;if(!e.note)e.note="Cotovelos junto ao corpo, puxando em direção ao quadril: mais ênfase no grande dorsal"}});
+    });
+    p.v=9; migrated=true;
   }  // fartlek vira a 4ª corrida, opcional
   return p;
 }
